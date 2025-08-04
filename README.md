@@ -7,6 +7,8 @@ Assets by Kenney.nl
 ## Missing Game Features
 - UI
 - Ramping Difficulty
+- Game Over screen with score and high-score
+- Circle/Box collision
 
 ## Missing Engine Features
 - Audio
