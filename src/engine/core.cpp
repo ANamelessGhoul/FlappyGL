@@ -16,11 +16,20 @@
 #include <cassert>
 
 namespace Mln{
+    constexpr int deltaCacheSize = 16;
+    static_assert((deltaCacheSize & (deltaCacheSize - 1)) == 0, "deltaCacheSize must be a power of 2");
+
     struct {
         GLFWwindow* window = nullptr;
         bool shouldClose = false;
         bool windowResized = false;
         Vector2 viewportSize = {0, 0};
+
+        double time;
+        double delta;
+        double deltaCache[deltaCacheSize];
+        int deltaCacheIndex = 0;
+        int deltaCacheFrameCounter = 0;
     } gCore;
 
 
@@ -72,8 +81,12 @@ namespace Mln{
 
         gCore.viewportSize = {(float)width, (float)height};
 
-        return OK;
+        glfwSetTime(0);
+        gCore.time = 0;
+        gCore.deltaCacheIndex = 0;
+        gCore.deltaCacheFrameCounter = 0;
 
+        return OK;
     }
 
     bool WindowShouldClose()
@@ -91,6 +104,21 @@ namespace Mln{
         return gCore.viewportSize;
     }
 
+    double GetFrameTime()
+    {
+        return gCore.delta;
+    }
+
+    double GetFPS()
+    {
+        double sum = 0;
+        for (size_t i = 0; i < deltaCacheSize; i++)
+        {
+            sum += gCore.deltaCache[i];
+        }
+        return deltaCacheSize / sum;
+    }
+
     void BeginFrame()
     {
         glfwPollEvents();
@@ -100,6 +128,18 @@ namespace Mln{
     {
         glfwSwapBuffers(gCore.window);
         gCore.windowResized = false;
+
+        double newTime = glfwGetTime();
+        gCore.delta = newTime - gCore.time;
+        gCore.time = newTime;
+
+        gCore.deltaCacheFrameCounter++;
+        if (gCore.deltaCacheFrameCounter > 10)
+        {
+            gCore.deltaCacheFrameCounter -= 10;
+            gCore.deltaCache[gCore.deltaCacheIndex] = gCore.delta;
+            gCore.deltaCacheIndex = (gCore.deltaCacheIndex + 1) & (deltaCacheSize - 1);
+        }
     }
 
     Shader LoadShader(const char *vertexText, const char *fragmentText)

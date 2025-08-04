@@ -18,6 +18,9 @@ namespace Mln
     bool DidWindowResize();
     Vector2 GetViewportSize();
 
+    double GetFrameTime();
+    double GetFPS();
+
     void BeginFrame();
     void EndFrame();
 

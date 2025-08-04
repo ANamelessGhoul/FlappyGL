@@ -19,7 +19,6 @@ const int SCR_HEIGHT = 600;
 int main()
 {
     Mln::InitWindow(SCR_WIDTH, SCR_HEIGHT, "Flappy Bird");
-    glfwSetTime(0);
 
     Render::InitRenderer();
     Render::SetClearColor({0.2f, 0.2f, 0.6f, 1.f});
@@ -32,44 +31,14 @@ int main()
     float scale = HMM_MIN(horizontal_scale, vertical_scale);
     Render::SetView(HMM_Scale({scale, scale, 1.f}));
 
-    double time = glfwGetTime();
-    double timer = 0;
-    constexpr int deltaCacheSize = 10;
-    double deltaCache[deltaCacheSize];
-
-
     Game::Init();
 
     // render loop
     // -----------
     while (!Mln::WindowShouldClose())
     {
-        double newTime = glfwGetTime();
-        double delta = newTime - time;
-        time = newTime;
-
-        for (size_t i = 1; i < deltaCacheSize; i++)
-        {
-            deltaCache[i - 1] = deltaCache[i];
-        }
-        deltaCache[deltaCacheSize - 1] = delta;
-
-        timer += delta;
-        if (timer > 1)
-        {
-            timer -= 1;
-            double average = 0;
-            for (size_t i = 0; i < deltaCacheSize; i++)
-            {
-                average += delta;
-            }
-            average /= deltaCacheSize;            
-
-            std::cout << 1/average << '\n';
-        }
-
         Mln::BeginFrame();
-        Game::Update(delta);
+        Game::Update(Mln::GetFrameTime());
 
         Game::Draw();
 
@@ -80,6 +49,7 @@ int main()
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
 
+    Game::Unload();
     Render::UnloadRenderer();
 
 
