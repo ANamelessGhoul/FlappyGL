@@ -23,13 +23,6 @@ int main()
     Render::InitRenderer();
     Render::SetClearColor({0.2f, 0.2f, 0.6f, 1.f});
 
-    Vector2 viewportSize = Mln::GetViewportSize();
-    Render::SetProjection(HMM_Orthographic_LH_NO(-SCR_WIDTH / 2, SCR_WIDTH / 2, SCR_HEIGHT / 2, -SCR_HEIGHT / 2, -1.f, 1.f));
-    
-    float horizontal_scale = viewportSize.X / SCR_WIDTH;
-    float vertical_scale = viewportSize.Y / SCR_HEIGHT;
-    float scale = HMM_MIN(horizontal_scale, vertical_scale);
-    Render::SetView(HMM_Scale({scale, scale, 1.f}));
 
     Game::Init();
 

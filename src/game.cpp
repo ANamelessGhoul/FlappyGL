@@ -78,6 +78,13 @@ void Game::Init()
     state.game_time = 0;
     state.game_scale = 1.f;
 
+    Vector2 viewportSize = Mln::GetViewportSize();
+    Render::SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
+    
+    float horizontal_scale = viewportSize.X / GAME_WIDTH;
+    float vertical_scale = viewportSize.Y / GAME_HEIGHT;
+    float scale = HMM_MIN(horizontal_scale, vertical_scale);
+    Render::SetView(HMM_Scale({scale, scale, 1.f}));
 
     state.current_scene = &MainMenuScene;
     state.current_scene->Init();
