@@ -89,6 +89,11 @@ namespace Mln{
         return OK;
     }
 
+    void UnloadWindow()
+    {
+        glfwTerminate();
+    }
+
     bool WindowShouldClose()
     {
         return glfwWindowShouldClose(gCore.window) || gCore.shouldClose;

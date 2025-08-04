@@ -1,15 +1,5 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <cstring>
-
-
-#include "stb_image.h"
-
 #include "core.hpp"
-
 #include "graphics/renderer.hpp"
-
 #include "game.hpp"
 
 // settings
@@ -39,15 +29,11 @@ int main()
         Mln::EndFrame();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
 
     Game::Unload();
     Render::UnloadRenderer();
 
+    Mln::UnloadWindow();
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
     return 0;
 }

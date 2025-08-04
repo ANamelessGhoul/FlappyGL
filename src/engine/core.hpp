@@ -14,6 +14,7 @@
 namespace Mln
 {
     Error InitWindow(int width, int height, const char* name);
+    void UnloadWindow();
     bool WindowShouldClose();
     bool DidWindowResize();
     Vector2 GetViewportSize();
