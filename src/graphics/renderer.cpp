@@ -177,7 +177,9 @@ namespace Render {
         
         FeatherEdges(image, 5);
 
+#if defined(GENERATE_SPRITE_ATLAS)
         Mln::WriteImage(image, "demo.png");
+#endif
         // Mln::Image i = Mln::LoadImage("demo1.png");
 
         state.sprite_atlas_width = image.width;

@@ -77,8 +77,10 @@ namespace Render::Text
         {
             font_atlas_image.data[i] = image[i];
         }
-        Mln::WriteImage(font_atlas_image, "font.png");
 
+#if defined(GENERATE_FONT_ATLAS)
+        Mln::WriteImage(font_atlas_image, "font.png");
+#endif
         
         state.shader = Mln::LoadShader(text_vs, text_fs).id;
         
