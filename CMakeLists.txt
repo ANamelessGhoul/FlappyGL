@@ -18,7 +18,9 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/") # This is useful to get an ASSETS_PATH in your IDE during development but you should comment this if you compile a release version and uncomment the next line
 else()
     target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/") # This is useful to get an ASSETS_PATH in your IDE during development but you should comment this if you compile a release version and uncomment the next line
-    target_link_options("${CMAKE_PROJECT_NAME}" PRIVATE -mwindows)
+    if (WIN32)
+        target_link_options("${CMAKE_PROJECT_NAME}" PRIVATE -mwindows)
+    endif()
 endif()
 
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw/include")
