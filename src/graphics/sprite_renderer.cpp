@@ -7,6 +7,7 @@
 
 #include "gen/default.fs.h"
 #include "gen/default.vs.h"
+#include "graphics/draw_commands.hpp"
 
 #define GET_ATTRIBUTE_LOCATION(var) state.var = glGetAttribLocation(state.shader, #var)
 #define GET_UNIFORM_LOCATION(var) state.var = glGetUniformLocation(state.shader, #var)
@@ -16,8 +17,8 @@ namespace Render::Sprite
     void GetLocations();
     void CreateBuffers();
 
-    constexpr unsigned int MaxVertices = 4 * MaxSpriteCommands;
-    constexpr unsigned int MaxIndices = 6 * MaxSpriteCommands;
+    constexpr unsigned int MaxVertices = 4 * MaxDrawCommands;
+    constexpr unsigned int MaxIndices = 6 * MaxDrawCommands;
 
     #pragma pack(push, 1)
     struct Vertex{
@@ -72,11 +73,11 @@ namespace Render::Sprite
         Mln::UnloadTexture(state.atlas_texture);
     }
 
-    void DrawCommands(const SpriteCommandBuffer& commands)
+    void DrawCommands(DrawCommand* commands, size_t count)
     {
-        for (size_t i = 0; i < commands.count; i++)
+        for (size_t i = 0; i < count; i++)
         {
-            const SpriteCommand& spriteCommand = commands.items[i];
+            const SpriteCommand& spriteCommand = commands[i].sprite;
             Vertex* vertices = state.vertices + state.vertex_count;
             vertices[0].position = spriteCommand.vertices[0];
             vertices[1].position = spriteCommand.vertices[1];
@@ -129,7 +130,7 @@ namespace Render::Sprite
 
     void CreateBuffers()
     {
-        for (size_t i = 0; i < MaxSpriteCommands; i++)
+        for (size_t i = 0; i < MaxDrawCommands; i++)
         {
             state.indices[i * 6 + 0] = i * 4 + 0;
             state.indices[i * 6 + 1] = i * 4 + 1;

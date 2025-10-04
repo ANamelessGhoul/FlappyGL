@@ -5,9 +5,6 @@
 
 #include "core.hpp"
 
-#include "gen/default.fs.h"
-#include "gen/default.vs.h"
-
 #include "draw_commands.hpp"
 
 #include "sprite_renderer.hpp"
@@ -29,22 +26,16 @@ namespace Render {
     };
     #pragma pack(pop)
 
-    constexpr unsigned int MaxVertices = 16 * 1024;
-    constexpr unsigned int MaxIndeces = (MaxVertices / 4) * 6;
     constexpr unsigned int MaxSpriteSheetSize = 1024 * 2;
 
     struct {
         struct {
-            Vertex vertices[MaxVertices];
-            unsigned int indeces[MaxIndeces];
+            DrawCommand items[MaxDrawCommands];
             size_t count;
-        } buffer;
-
-        struct {
-            SpriteCommandBuffer sprites;
-            TextCommandBuffer text;
         } commands;
 
+        char text_buffer[MaxTextBufferSize];
+        char* text_next;
 
         Transform view;
         Transform projection;
@@ -190,14 +181,16 @@ namespace Render {
         Render::Sprite::Load(image);
 
 
-        state.commands.text.text_next = state.commands.text.text_buffer;
-        state.commands.text.count = 0;
+        state.text_next = state.text_buffer;
         Render::Text::Load(RESOURCES_PATH "Kenney Future Narrow.ttf");
 
         state.clear_color = Color{0.2f, 0.3f, 0.3f, 1.0f};
 
         state.view = HMM_M4D(1.0);
         state.projection = HMM_M4D(1.0);
+
+
+        state.commands.count = 0;
     }
 
     void UnloadRenderer()
@@ -234,14 +227,63 @@ namespace Render {
         DrawCommands();
     }
 
+    void DrawBatch(DrawCommandType commandType, DrawCommand* batch, size_t count)
+    {
+        switch (commandType) 
+        {
+            case DRAW_COMMAND_SPRITE:
+            {
+                Render::Sprite::DrawCommands(batch, count);
+            } break;
+            case DRAW_COMMAND_TEXT:
+            {
+                Render::Text::DrawCommands(batch, count);
+            } break;
+            case DRAW_COMMAND_INVALID:
+            {
+
+            }break;
+            default:
+            {
+                assert(0 && "Incorrect draw command type");
+            }
+        }
+    }
+
     void DrawCommands()
     {
-        Render::Sprite::DrawCommands(state.commands.sprites);
-        state.commands.sprites.count = 0;
+        state.commands.items[state.commands.count++].type = DRAW_COMMAND_INVALID;
 
-        Render::Text::DrawCommands(state.commands.text);
-        state.commands.text.count = 0;
-        state.commands.text.text_next = state.commands.text.text_buffer;
+        int batchType = DRAW_COMMAND_INVALID;
+        DrawCommand* batchStart = state.commands.items;
+        size_t batchCount = 0;
+
+
+        for (size_t i = 0; i < state.commands.count; i++) 
+        {
+            DrawCommand* next = state.commands.items + i;
+            if (next->type != batchType)
+            {
+                DrawBatch(batchType, batchStart, batchCount);
+
+                batchStart = next;
+                batchCount = 1;
+                batchType = next->type;
+            }
+            else
+            {
+                batchCount++;
+            }
+        }
+
+        // NOTE(takintug): render the last batch in the list
+        if (batchCount > 0)
+        {
+            DrawBatch(batchType, batchStart, batchCount);
+        }
+
+
+        state.commands.count = 0;
     }
     
     void DrawSprite(Vector2 position, Vector2 size, Color color, SpriteAtlas::Sprite sprite)
@@ -258,7 +300,7 @@ namespace Render {
 
     void DrawSprite(Transform transform, Color color, SpriteAtlas::Sprite sprite)
     {
-        assert(state.commands.sprites.count != Render::MaxSpriteCommands && "Sprite limit reached");
+        assert(state.commands.count != Render::MaxDrawCommands && "Draw Command limit reached");
 
         SpriteCommand command;
         
@@ -293,7 +335,8 @@ namespace Render {
         command.color = color;
         command.color_override = {0, 0, 0, 0};
 
-        state.commands.sprites.items[state.commands.sprites.count++] = command;
+        command.type = DRAW_COMMAND_SPRITE;
+        state.commands.items[state.commands.count++].sprite = command;
     }
 
     Vector2 GetSpriteSize(SpriteAtlas::Sprite sprite)
@@ -308,20 +351,20 @@ namespace Render {
 
     void DrawText(const char *str, Vector2 position, float scale, Color color, TextAlignment alignment /* = TextAlignment::LEFT */)
     {
-        assert(state.commands.text.count != Render::MaxTextCommands && "Text command limit reached");
+        assert(state.commands.count != Render::MaxDrawCommands && "Draw Command limit reached");
 
         size_t str_length = strlen(str);
-        assert((state.commands.text.text_buffer + MaxTextBufferSize - state.commands.text.text_next) > str_length && "Text buffer limit reached");
+        assert((state.text_buffer + MaxTextBufferSize - state.text_next) > str_length && "Text buffer limit reached");
 
         TextCommand command;
         command.alignment = alignment;
         command.color = color;
-        command.text = state.commands.text.text_next;
+        command.text = state.text_next;
 
-        memcpy(state.commands.text.text_next, str, str_length * sizeof(char));
-        state.commands.text.text_next += str_length * sizeof(char);
-        *state.commands.text.text_next = 0;
-        state.commands.text.text_next += 1;
+        memcpy(state.text_next, str, str_length * sizeof(char));
+        state.text_next += str_length * sizeof(char);
+        *state.text_next = 0;
+        state.text_next += 1;
 
         float text_width = MeasureText(command.text);
         Transform alignment_offset = HMM_M4D(1.0f);
@@ -342,7 +385,8 @@ namespace Render {
         Transform mvp = state.projection * state.view * model;
         command.transform = mvp;
         
-        state.commands.text.items[state.commands.text.count++] = command;
+        command.type = DRAW_COMMAND_TEXT;
+        state.commands.items[state.commands.count++].text = command;
     }
 
     Mln::Texture LoadTexture(Mln::Image image, bool filter, bool mipmaps)

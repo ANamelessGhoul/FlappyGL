@@ -11,7 +11,7 @@ namespace Render
     {
         void Load(Mln::Image atlas_image);
         void Unload();
-        void DrawCommands(const SpriteCommandBuffer& commands);
+        void DrawCommands(DrawCommand* commands, size_t count);
     }
 }
 

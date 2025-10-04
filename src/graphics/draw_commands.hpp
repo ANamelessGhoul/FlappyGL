@@ -6,37 +6,40 @@
 
 namespace Render
 {
+    constexpr size_t MaxDrawCommands = 2 * 1024;
+
+    typedef int DrawCommandType;
+    typedef enum{
+        DRAW_COMMAND_INVALID = 0,
+        DRAW_COMMAND_SPRITE,
+        DRAW_COMMAND_TEXT
+    } DrawCommandKind;
+
     struct SpriteCommand{
+        DrawCommandType type;
         Vector2 vertices[4];
         Vector2 uvs[4];
         Color color;
         Color color_override;
     };
-    constexpr size_t MaxSpriteCommands = 64 * 1024;
     
-    struct SpriteCommandBuffer{
-        SpriteCommand items[MaxSpriteCommands];
-        size_t count;
-    };
-
     enum class TextAlignment;
 
     struct TextCommand{
+        DrawCommandType type;
         Transform transform;
         TextAlignment alignment;
         Color color;
         char* text;
     };
     
-    constexpr size_t MaxTextCommands = 1024;
     constexpr size_t MaxTextBufferSize = 8 * 1024;
 
-    struct TextCommandBuffer
-    {   
-        TextCommand items[MaxTextCommands];
-        size_t count;
-        char text_buffer[MaxTextBufferSize];
-        char* text_next;
+    union DrawCommand
+    {
+        DrawCommandType type;
+        SpriteCommand sprite;
+        TextCommand text;
     };
 } // namespace Render
 

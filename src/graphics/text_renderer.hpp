@@ -11,7 +11,7 @@ namespace Render
     {
         void Load(const char* font_file);
         void Unload();
-        void DrawCommands(const TextCommandBuffer& commands);
+        void DrawCommands(DrawCommand* commands, size_t count);
 
         float MeasureText(const char* text);
     }
