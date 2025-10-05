@@ -231,10 +231,14 @@ namespace Mln{
     {
         Image image{0};
 
+#if defined(_DEBUG)
+        std::cout << "INFO: loading image: " << path << std::endl;
+#endif
+
         image.data = stbi_load(path, &image.width, &image.height, &image.components, 4);
         if (!image.data)
         {
-            std::cout << "ERROR: Failed to load image" << std::endl;
+            std::cout << "ERROR: Failed to load image: " << path << std::endl;
         }
 
         return image;
