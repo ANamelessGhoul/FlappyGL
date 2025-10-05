@@ -1,5 +1,7 @@
 #include "game.hpp"
+#include "core.hpp"
 #include "graphics/renderer.hpp"
+#include "keys.h"
 #include <cmath>
 #include <cstdio>
 
@@ -161,12 +163,10 @@ void Game::InitSceneMainMenu()
 void Game::UpdateSceneMainMenu(float delta)
 {
     // Menu logic
-    bool space_down = Mln::IsKeyDown(KEY_SPACE);
-    if (space_down && !state.jump_down_last_frame)
+    if (Mln::IsKeyJustPressed(KEY_SPACE) || Mln::IsMouseButtonJustPressed(MOUSE_BUTTON_LEFT))
     {
         ChangeSceneTo(&GameScene);
     }
-    state.jump_down_last_frame = space_down;
 
     // Move walls
     int rightmost_wall = -1;
@@ -233,7 +233,6 @@ void Game::InitSceneGame()
     state.player_position = {0, 0};
     state.player_speed = 0;
     state.player_rotation = 0;
-    state.jump_down_last_frame = false;
     
     state.wing_rotation = WING_UP_ROTATION;
     state.flap_timer = 0;
@@ -315,13 +314,11 @@ void Game::UpdateSceneGame(float delta)
         
 
         // Jump
-        bool jump_down = Mln::IsKeyDown(KEY_SPACE);
-        if (!state.is_game_over && jump_down && !state.jump_down_last_frame)
+        if (!state.is_game_over && (Mln::IsKeyJustPressed(KEY_SPACE) || Mln::IsMouseButtonJustPressed(MOUSE_BUTTON_LEFT)))
         {
             state.player_speed -= PLAYER_JUMP_SPEED; 
             state.flap_timer = Game::FLAP_TIME;
         }
-        state.jump_down_last_frame = jump_down;
         
     }
     

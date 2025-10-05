@@ -15,6 +15,11 @@
 
 namespace Mln
 {
+    struct InputState{
+        bool keys[KEY__COUNT];
+        bool mouse_buttons[MOUSE_BUTTON__COUNT];
+    };
+
     Error InitWindow(int width, int height, const char* name);
     void UnloadWindow();
     bool WindowShouldClose();
@@ -39,6 +44,12 @@ namespace Mln
     
 
     bool IsKeyDown(Key key);
+    bool IsKeyUp(Key key);
+    bool IsKeyJustPressed(Key key);
+
+    bool IsMouseButtonDown(MouseButton button);
+    bool IsMouseButtonUp(MouseButton button);
+    bool IsMouseButtonJustPressed(MouseButton button);
 
     Vector2 TransformVector(Transform transform, Vector2 vector);
     Transform GetMatrix(Transform2D transform2D);

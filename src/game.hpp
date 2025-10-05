@@ -52,7 +52,6 @@ namespace Game{
         Vector2 player_position = {0, 0};
         float player_speed = 0;
         float player_rotation = 0;
-        bool jump_down_last_frame = false;
 
         float wing_rotation = 0;
         float flap_timer = 0;

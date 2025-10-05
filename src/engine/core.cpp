@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "keys.h"
 
 #include <iostream>
 
@@ -30,6 +31,11 @@ namespace Mln{
         double deltaCache[deltaCacheSize];
         int deltaCacheIndex = 0;
         int deltaCacheFrameCounter = 0;
+
+        struct{
+            InputState current;
+            InputState previous;
+        } input;
     } gCore;
 
 
@@ -133,6 +139,17 @@ namespace Mln{
     void BeginFrame()
     {
         glfwPollEvents();
+        gCore.input.previous = gCore.input.current;
+
+        for (int key = 0; key < KEY__COUNT; key++) 
+        {
+            gCore.input.current.keys[key] = glfwGetKey(gCore.window, key) == GLFW_PRESS;
+        }
+
+        for (int button = 0; button < MOUSE_BUTTON__COUNT; button++) 
+        {
+            gCore.input.current.mouse_buttons[button] = glfwGetMouseButton(gCore.window, button) == GLFW_PRESS;
+        }
     }
 
     void EndFrame()
@@ -289,8 +306,32 @@ namespace Mln{
 
     bool IsKeyDown(Key key)
     {
-        // NOTE: Key enum corresponds directly to GLFW keys
-        return glfwGetKey(gCore.window, key) == GLFW_PRESS;
+        return gCore.input.current.keys[key];
+    }
+
+    bool IsKeyUp(Key key)
+    {
+        return !gCore.input.current.keys[key];
+    }
+
+    bool IsKeyJustPressed(Key key)
+    {
+        return gCore.input.current.keys[key] && !gCore.input.previous.keys[key];
+    }
+
+    bool IsMouseButtonDown(MouseButton button)
+    {
+        return gCore.input.current.mouse_buttons[button];
+    }
+
+    bool IsMouseButtonUp(MouseButton button)
+    {
+        return !gCore.input.current.mouse_buttons[button];
+    }
+
+    bool IsMouseButtonJustPressed(MouseButton button)
+    {
+        return gCore.input.current.mouse_buttons[button] && !gCore.input.previous.mouse_buttons[button];
     }
 
     Vector2 TransformVector(Transform transform, Vector2 vector)
