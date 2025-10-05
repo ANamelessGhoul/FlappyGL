@@ -11,8 +11,13 @@
 
 #include <glad/glad.h>
 
-#include "gen/text.fs.h"
-#include "gen/text.vs.h"
+#if defined(OPENGL_ES)
+    #include "gen/gles/text.fs.h"
+    #include "gen/gles/text.vs.h"
+#else
+    #include "gen/gl/text.fs.h"
+    #include "gen/gl/text.vs.h"
+#endif
 
 #define GET_ATTRIBUTE_LOCATION(var) state.var = glGetAttribLocation(state.shader, #var)
 #define GET_UNIFORM_LOCATION(var) state.var = glGetUniformLocation(state.shader, #var)
@@ -54,6 +59,7 @@ namespace Render::Text
         GLuint aTexCoord;
 
         GLuint uTexture;
+        
     } state;
 
 
@@ -90,14 +96,14 @@ namespace Render::Text
 
         GetLocations();
         CreateBuffers();
-
-        glUseProgram(state.shader);
-        glUniform1i(state.uTexture, 0);
     }
 
     void Unload()
     {
-        glDeleteVertexArrays(1, &state.vao);
+        if (glDeleteVertexArrays)
+        {
+            glDeleteVertexArrays(1, &state.vao);
+        }
         glDeleteBuffers(1, &state.vbo);
         glDeleteBuffers(1, &state.ebo);
 
@@ -148,17 +154,35 @@ namespace Render::Text
         }
 
         glUseProgram(state.shader);
+        glUniform1i(state.uTexture, 2);
 
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, state.atlas_texture.id);
 
 
-        glBindVertexArray(state.vao);
+        if (glBindVertexArray)
+        {
+            glBindVertexArray(state.vao);
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * state.vertex_count, state.vertices);
 
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ebo);
+
+        glVertexAttribPointer(state.aPos, sizeof(Vertex::position) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(state.aPos);
+
+        glVertexAttribPointer(state.aColor, sizeof(Vertex::color) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        glEnableVertexAttribArray(state.aColor);
+
+        glVertexAttribPointer(state.aTexCoord, sizeof(Vertex::uv) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+        glEnableVertexAttribArray(state.aTexCoord);
+
         glDrawElements(GL_TRIANGLES, 6 * (state.vertex_count / 4), GL_UNSIGNED_INT, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glUseProgram(0);
 
         state.vertex_count = 0;
     }
@@ -210,11 +234,17 @@ namespace Render::Text
             state.indices[i * 6 + 5] = i * 4 + 3;
         }
 
-        glGenVertexArrays(1, &state.vao);
+        if (glGenVertexArrays)
+        {
+            glGenVertexArrays(1, &state.vao);
+        }
         glGenBuffers(1, &state.vbo);
         glGenBuffers(1, &state.ebo);
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(state.vao);
+        if (glBindVertexArray)
+        {
+            glBindVertexArray(state.vao);
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MaxVertices, state.vertices, GL_DYNAMIC_DRAW);
@@ -222,14 +252,11 @@ namespace Render::Text
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(*state.indices) * MaxIndices, state.indices, GL_STATIC_DRAW);
 
-        glVertexAttribPointer(state.aPos, sizeof(Vertex::position) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-        glEnableVertexAttribArray(state.aPos);
+  
 
-        glVertexAttribPointer(state.aColor, sizeof(Vertex::color) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        glEnableVertexAttribArray(state.aColor);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        glVertexAttribPointer(state.aTexCoord, sizeof(Vertex::uv) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
-        glEnableVertexAttribArray(state.aTexCoord);
     }
 
 

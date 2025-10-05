@@ -67,7 +67,11 @@ namespace Mln{
 
         // glad: load all OpenGL function pointers
         // ---------------------------------------
+        #if defined (OPENGL_ES)
+        if (!gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress))
+        #else
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        #endif
         {
             std::cout << "Failed to initialize GLAD" << std::endl;
             return ERR_GENERIC;
@@ -77,7 +81,9 @@ namespace Mln{
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        #if !defined(PLATFORM_WEB)
         glfwSwapInterval(1);
+        #endif
 
         gCore.viewportSize = {(float)width, (float)height};
 
@@ -158,7 +164,7 @@ namespace Mln{
         glShaderSource(vertexShader, 1, &vertexText, NULL);
         glCompileShader(vertexShader);
         // check for shader compile errors
-        int success;
+        GLint success;
         char infoLog[512];
         glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
         if (!success)

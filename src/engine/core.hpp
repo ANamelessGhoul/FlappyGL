@@ -6,6 +6,8 @@
 #include "keys.h"
 #include "melon_types.hpp"
 
+#include "config.hpp"
+
 #ifndef RESOURCES_PATH
 #define RESOURCES_PATH "./resources/"
 #endif

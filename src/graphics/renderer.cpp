@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include <cstdio>
 #include <glad/glad.h>
 #include <cstddef>
 #include <cassert>
@@ -176,13 +177,11 @@ namespace Render {
         state.sprite_atlas_width = image.width;
         state.sprite_atlas_height = image.height;
 
-
-
+        Render::Text::Load(RESOURCES_PATH "Kenney Future Narrow.ttf");
         Render::Sprite::Load(image);
 
-
+        
         state.text_next = state.text_buffer;
-        Render::Text::Load(RESOURCES_PATH "Kenney Future Narrow.ttf");
 
         state.clear_color = Color{0.2f, 0.3f, 0.3f, 1.0f};
 
@@ -282,7 +281,7 @@ namespace Render {
             DrawBatch(batchType, batchStart, batchCount);
         }
 
-
+        state.text_next = state.text_buffer;
         state.commands.count = 0;
     }
     
@@ -423,13 +422,25 @@ namespace Render {
         // load image, create texture and generate mipmaps
         GLenum componentTypes[] = {
             0,
+#if !defined(OPENGL_ES)
             GL_RED,
             GL_RG,
             GL_RGB,
             GL_RGBA
+#else
+            GL_LUMINANCE,
+            GL_LUMINANCE_ALPHA,
+            GL_RGB,
+            GL_RGBA
+#endif
         };
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, componentTypes[image.components], GL_UNSIGNED_BYTE, image.data);
+        int internalFormat = GL_RGBA;
+        #if defined(OPENGL_ES)
+        internalFormat = componentTypes[image.components];
+        #endif
+
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, componentTypes[image.components], GL_UNSIGNED_BYTE, image.data);
         if (mipmaps)
         {
             glGenerateMipmap(GL_TEXTURE_2D);

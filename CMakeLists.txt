@@ -23,13 +23,24 @@ else()
     endif()
 endif()
 
+if (EMSCRIPTEN)
+    target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC "PLATFORM_WEB") 
+    target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC "OPENGL_ES") 
+
+
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=1073741824 -s GL_ASSERTIONS=1 -s GL_DEBUG=1 -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1  --embed-file ${CMAKE_SOURCE_DIR}/resources")
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 --shell-file ${CMAKE_SOURCE_DIR}/src/shell.html ")
+    set(CMAKE_EXECUTABLE_SUFFIX ".html") # This line is used to set your executable to build with the emscripten html template so that you can directly open it.
+else()
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw")
+endif()
+
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw/include")
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glad/include")
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty")
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/engine")
 
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw")
 
 # target_link_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2/lib")
 target_link_libraries("${CMAKE_PROJECT_NAME}" PUBLIC glfw)

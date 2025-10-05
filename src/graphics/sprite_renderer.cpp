@@ -1,12 +1,20 @@
 #include "sprite_renderer.hpp"
+#include <GLES/gl.h>
 #include <glad/glad.h>
 #include <cstddef>
 #include <cassert>
+#include <cstdio>
+#include <iostream>
 
 #include "core.hpp"
 
-#include "gen/default.fs.h"
-#include "gen/default.vs.h"
+#if defined (OPENGL_ES)
+    #include "gen/gles/default.fs.h"
+    #include "gen/gles/default.vs.h"
+#else
+    #include "gen/gl/default.fs.h"
+    #include "gen/gl/default.vs.h"
+#endif
 #include "graphics/draw_commands.hpp"
 
 #define GET_ATTRIBUTE_LOCATION(var) state.var = glGetAttribLocation(state.shader, #var)
@@ -51,20 +59,20 @@ namespace Render::Sprite
     void Load(Mln::Image atlas_image)
     {
         state.shader = Mln::LoadShader(default_vs, default_fs).id;
-        state.atlas_texture = Mln::LoadTextureFromImage(atlas_image, true, true);
 
+        state.atlas_texture = Mln::LoadTextureFromImage(atlas_image, true, true);
         assert(state.atlas_texture.id != -1 && "Cannot load sprite renderer with invalid texture");
 
         GetLocations();
         CreateBuffers();
-
-        glUseProgram(state.shader);
-        glUniform1i(state.uTexture, 0);
     }
 
     void Unload()
     {
-        glDeleteVertexArrays(1, &state.vao);
+        if (glDeleteVertexArrays)
+        {
+            glDeleteVertexArrays(1, &state.vao);
+        }
         glDeleteBuffers(1, &state.vbo);
         glDeleteBuffers(1, &state.ebo);
 
@@ -104,17 +112,35 @@ namespace Render::Sprite
         }
 
         glUseProgram(state.shader);
+        glUniform1i(state.uTexture, 1);
 
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, state.atlas_texture.id);
 
 
-        glBindVertexArray(state.vao);
+        if (glBindVertexArray)
+        {
+            glBindVertexArray(state.vao);
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * state.vertex_count, state.vertices);
 
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ebo);
+
+        glVertexAttribPointer(state.aPos, sizeof(Vertex::position) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(state.aPos);
+
+        glVertexAttribPointer(state.aColor, sizeof(Vertex::color) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        glEnableVertexAttribArray(state.aColor);
+
+        glVertexAttribPointer(state.aTexCoord, sizeof(Vertex::uv) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+        glEnableVertexAttribArray(state.aTexCoord);
+
         glDrawElements(GL_TRIANGLES, 6 * (state.vertex_count / 4), GL_UNSIGNED_INT, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
 
         state.vertex_count = 0;
     }
@@ -140,11 +166,17 @@ namespace Render::Sprite
             state.indices[i * 6 + 5] = i * 4 + 3;
         }
 
-        glGenVertexArrays(1, &state.vao);
+        if (glGenVertexArrays)
+        {
+            glGenVertexArrays(1, &state.vao);
+        }
         glGenBuffers(1, &state.vbo);
         glGenBuffers(1, &state.ebo);
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(state.vao);
+        if (glBindVertexArray)
+        {
+            glBindVertexArray(state.vao);
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MaxVertices, state.vertices, GL_DYNAMIC_DRAW);
@@ -152,14 +184,10 @@ namespace Render::Sprite
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(*state.indices) * MaxIndices, state.indices, GL_STATIC_DRAW);
 
-        glVertexAttribPointer(state.aPos, sizeof(Vertex::position) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-        glEnableVertexAttribArray(state.aPos);
 
-        glVertexAttribPointer(state.aColor, sizeof(Vertex::color) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        glEnableVertexAttribArray(state.aColor);
 
-        glVertexAttribPointer(state.aTexCoord, sizeof(Vertex::uv) / sizeof(float), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
-        glEnableVertexAttribArray(state.aTexCoord);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
 } // namespace Render::Sprite
