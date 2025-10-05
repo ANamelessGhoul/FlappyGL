@@ -14,4 +14,3 @@ Assets by Kenney.nl
 - Audio
 - Mouse Input
 - Controller Input
-- Mixed layering between text and sprites
