@@ -51,8 +51,17 @@ namespace Mln{
         // glfw: initialize and configure
         // ------------------------------
         glfwInit();
+        
+    #if defined (OPENGL_ES)
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    #else
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    #endif
+
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     #ifdef __APPLE__
