@@ -2,6 +2,7 @@
 #define GAME_HPP
 
 #include "core.hpp"
+#include "audio.hpp"
 
 namespace Game{
     constexpr int GAME_HEIGHT = 600;
@@ -38,6 +39,10 @@ namespace Game{
         float game_scale = 1.f;
 
         const Scene* current_scene;
+
+        Mln::Sound coin_sound;
+        Mln::Sound hurt_sound;
+        Mln::Sound jump_sound;
 
         //// GAME SCENE
 

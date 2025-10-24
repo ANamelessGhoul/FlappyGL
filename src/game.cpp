@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "audio.hpp"
 #include "core.hpp"
 #include "graphics/renderer.hpp"
 #include "keys.h"
@@ -90,6 +91,10 @@ void Game::Init()
 
     state.current_scene = &MainMenuScene;
     state.current_scene->Init();
+
+    state.coin_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "coin.wav");
+    state.hurt_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "hurt.wav");
+    state.jump_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "jump.wav");
 }
 
 void Game::Update(float delta)
@@ -135,6 +140,8 @@ void Game::DrawGap(Vector2 position)
 
 void Game::TriggerGameOver()
 {
+    Mln::PlaySound(state.hurt_sound);
+
     state.is_game_over = true;
     state.player_speed = -PLAYER_JUMP_SPEED;
     state.wing_rotation = 0;
@@ -261,6 +268,7 @@ void Game::UpdateSceneGame(float delta)
             if (wasAheadOfPlayer && isBehindPlayer)
             {
                 state.score += 1;
+                Mln::PlaySound(state.coin_sound);
             }
 
             // Find rightmost wall for spawning new walls
@@ -318,6 +326,7 @@ void Game::UpdateSceneGame(float delta)
         {
             state.player_speed -= PLAYER_JUMP_SPEED; 
             state.flap_timer = Game::FLAP_TIME;
+            Mln::PlaySound(state.jump_sound);
         }
         
     }

@@ -46,19 +46,5 @@ target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURC
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/engine")
 
 
-# target_link_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2/lib")
 target_link_libraries("${CMAKE_PROJECT_NAME}" PUBLIC glfw)
 
-
-
-# if (EMSCRIPTEN)
-#     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 --shell-file ${CMAKE_SOURCE_DIR}/src/shell.html ")
-#     set(CMAKE_EXECUTABLE_SUFFIX ".html") # This line is used to set your executable to build with the emscripten html template so that you can directly open it.
-
-#     set(PLATFORM Web)
-#     set(OPENGL_VERSION "ES 2.0")
-# else()
-#     set(PLATFORM Desktop)
-#     set(OPENGL_VERSION 3.3)
-
-# endif ()

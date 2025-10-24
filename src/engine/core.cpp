@@ -16,6 +16,8 @@
 
 #include <cassert>
 
+#include "audio.hpp"
+
 namespace Mln{
     constexpr int deltaCacheSize = 16;
     static_assert((deltaCacheSize & (deltaCacheSize - 1)) == 0, "deltaCacheSize must be a power of 2");
@@ -36,13 +38,15 @@ namespace Mln{
             InputState current;
             InputState previous;
         } input;
+
+
+
     } gCore;
 
 
 
     void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     void processInput(GLFWwindow *window);
-
 
 
     Error InitWindow(int width, int height, const char *name)
@@ -92,7 +96,7 @@ namespace Mln{
             return ERR_GENERIC;
         }
 
-
+        // TODO(takintug): This should be handled by the renderer
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -101,6 +105,8 @@ namespace Mln{
         #endif
 
         gCore.viewportSize = {(float)width, (float)height};
+
+        InitAudio();
 
         glfwSetTime(0);
         gCore.time = 0;
