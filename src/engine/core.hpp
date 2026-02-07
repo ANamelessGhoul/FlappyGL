@@ -32,10 +32,6 @@ namespace Mln
     void BeginFrame();
     void EndFrame();
 
-    Shader LoadShader(const char* vertexText, const char* fragmentText);
-    Texture LoadTexture(const char* path, bool filter, bool mipmaps);
-    Texture LoadTextureFromImage(Image image, bool filter, bool mipmaps);
-    void UnloadTexture(Texture& texture);
     Image LoadImage(const char* path);
     Image CreateImage(int width, int height, int components);
     void UnloadImage(Image image);
@@ -53,6 +49,10 @@ namespace Mln
 
     Vector2 TransformVector(Transform transform, Vector2 vector);
     Transform GetMatrix(Transform2D transform2D);
+
+    void* GetProcAddressPtr();
+    
+
 } // namespace Mln
 
 

@@ -2,18 +2,19 @@
 #ifndef MELON_TYPES_HPP
 #define MELON_TYPES_HPP
 
-#include <cinttypes>
 #include "HandmadeMath.h"
-typedef HMM_Vec2 Vector2;
-typedef HMM_Vec3 Vector3;
-typedef HMM_Vec4 Vector4;
-typedef HMM_Vec4 Color;
-typedef HMM_Mat4 Transform;
-
 
 
 namespace Mln
 {
+    using Vector2 = HMM_Vec2;
+    using Vector3 = HMM_Vec3;
+    using Vector4 = HMM_Vec4;
+    using Color = HMM_Vec4;
+    using Transform = HMM_Mat4;
+
+    typedef void* Font;
+
     enum Error{
         OK,
         ERR_GENERIC

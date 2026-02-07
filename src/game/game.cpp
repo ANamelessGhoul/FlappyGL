@@ -1,14 +1,18 @@
 #include "game.hpp"
 #include "audio.hpp"
 #include "core.hpp"
-#include "graphics/renderer.hpp"
 #include "keys.h"
 #include <cmath>
 #include <cstdio>
 
+#include "graphics_api.hpp"
+#include "flappy_drawing.hpp"
+
+using namespace Mln;
+
 Game::State state;
 
-// TODO: Organize all rand functions
+// TODO: Organize all rand functions and don't use rand()
 
 // [-1, 1]
 float rand_flt()
@@ -82,19 +86,30 @@ void Game::Init()
     state.game_scale = 1.f;
 
     Vector2 viewportSize = Mln::GetViewportSize();
-    Render::SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
+    SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
     
     float horizontal_scale = viewportSize.X / GAME_WIDTH;
     float vertical_scale = viewportSize.Y / GAME_HEIGHT;
     float scale = HMM_MIN(horizontal_scale, vertical_scale);
-    Render::SetView(HMM_Scale({scale, scale, 1.f}));
+    SetView(HMM_Scale({scale, scale, 1.f}));
 
     state.current_scene = &MainMenuScene;
     state.current_scene->Init();
 
+
+
+
     state.coin_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "coin.wav");
     state.hurt_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "hurt.wav");
     state.jump_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "jump.wav");
+
+
+    state.pixel_font = LoadFont(RESOURCES_PATH "Kenney Pixel.ttf");
+    UnloadFont(state.pixel_font);
+    state.font = LoadFont(RESOURCES_PATH "Kenney Future Narrow.ttf");
+    state.pixel_font = LoadFont(RESOURCES_PATH "Kenney Pixel.ttf");
+    
+    LoadSpriteAtlas();
 }
 
 void Game::Update(float delta)
@@ -103,11 +118,11 @@ void Game::Update(float delta)
     if(Mln::DidWindowResize())
     {
         Vector2 viewportSize = Mln::GetViewportSize();
-        Render::SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
+        SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
         float horizontal_scale = viewportSize.X / GAME_WIDTH;
         float vertical_scale = viewportSize.Y / GAME_HEIGHT;
         state.game_scale = HMM_MIN(horizontal_scale, vertical_scale);
-        Render::SetView(HMM_Scale({state.game_scale, state.game_scale, 1.f}));
+        SetView(HMM_Scale({state.game_scale, state.game_scale, 1.f}));
     }
 
     state.current_scene->Update(delta);
@@ -117,12 +132,17 @@ void Game::Update(float delta)
 
 void Game::Draw()
 {
+    ClearBackground({0.2f, 0.2f, 0.6f, 1.f});
     state.current_scene->Draw();
 }
 
 void Game::Unload()
 {
     state.current_scene->Unload();
+
+    UnloadFont(state.font);
+    UnloadFont(state.pixel_font);
+    UnloadSpriteAtlas();
 }
 
 void Game::DrawGap(Vector2 position)
@@ -130,10 +150,10 @@ void Game::DrawGap(Vector2 position)
     float bottom_border = position.Y + GAP_HEIGHT * 0.5f;
     float top_border = position.Y - GAP_HEIGHT * 0.5f;
     
-    Vector2 spriteSize = Render::GetSpriteSize(SpriteAtlas::WALL);
+    Vector2 spriteSize = GetSpriteSize(SpriteAtlas::WALL);
     
-    Render::DrawSprite(Mln::Transform2D{{position.X, bottom_border + spriteSize.Y / 2.f}, {1.f, 1.f}, 0}, {0, 0, 0, 0}, SpriteAtlas::WALL);
-    Render::DrawSprite(Mln::Transform2D{{position.X, top_border - spriteSize.Y / 2.f}, {1.f, 1.f}, HMM_PI32}, {0, 0, 0, 0}, SpriteAtlas::WALL);
+    DrawSprite(Mln::Transform2D{{position.X, bottom_border + spriteSize.Y / 2.f}, {1.f, 1.f}, 0}, {0, 0, 0, 0}, SpriteAtlas::WALL);
+    DrawSprite(Mln::Transform2D{{position.X, top_border - spriteSize.Y / 2.f}, {1.f, 1.f}, HMM_PI32}, {0, 0, 0, 0}, SpriteAtlas::WALL);
 }
 
 
@@ -213,9 +233,9 @@ void Game::DrawSceneMainMenu()
     float player_ratio = sinf(state.game_time * 0.1f);
     float background_size = floorf(GAME_HEIGHT * 1.2f);
 
-    Render::DrawSprite({-background_size + 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
-    Render::DrawSprite({state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
-    Render::DrawSprite({background_size - 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({-background_size + 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({background_size - 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
 
     // for (int i = 0; i < state.active_walls; i++)
     // {
@@ -223,8 +243,8 @@ void Game::DrawSceneMainMenu()
     // }
 
 
-    Render::DrawText("FLAPPY ALIEN", {0, GAME_HEIGHT * -0.5f + 100}, 1.2f, TEXT_COLOR, Render::TextAlignment::CENTER);
-    Render::DrawText("Press SPACE to start", {0, 0}, 1.0f, {TEXT_COLOR.RGB, 0.75f}, Render::TextAlignment::CENTER);
+    DrawText(state.font, "FLAPPY ALIEN", {0, GAME_HEIGHT * -0.5f + 100}, 1.2f, TEXT_COLOR, TEXT_ALIGN_CENTER);
+    DrawText(state.font, "Press SPACE to start", {0, 0}, 1.0f, {TEXT_COLOR.RGB, 0.75f}, TEXT_ALIGN_CENTER);
 }
 
 void Game::UnloadSceneMainMenu()
@@ -308,7 +328,7 @@ void Game::UpdateSceneGame(float delta)
         for (int i = 0; i < state.active_walls; i++)
         {
             Vector2 wallPosition = state.walls[i];
-            Vector2 spriteSize = Render::GetSpriteSize(SpriteAtlas::WALL);
+            Vector2 spriteSize = GetSpriteSize(SpriteAtlas::WALL);
             float left_border = wallPosition.X - spriteSize.X * 0.5f;
             float right_border = wallPosition.X + spriteSize.X * 0.5f;
             float bottom_border = wallPosition.Y + GAP_HEIGHT * 0.5f;
@@ -384,9 +404,9 @@ void Game::DrawSceneGame()
     float player_ratio = HMM_Clamp(-1, state.player_position.Y / (GAME_HEIGHT * 0.5f), 1);
     float background_size = floorf(GAME_HEIGHT * 1.2f);
 
-    Render::DrawSprite({-background_size + 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
-    Render::DrawSprite({state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
-    Render::DrawSprite({background_size - 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({-background_size + 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
+    DrawSprite({background_size - 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
 
 
 
@@ -400,11 +420,11 @@ void Game::DrawSceneGame()
     Transform wingMatrix = Mln::GetMatrix(Mln::Transform2D{state.player_position, {.5f, .5f}, state.player_rotation + state.wing_rotation}) * Mln::GetMatrix(Mln::Transform2D{Vector2{-50.f , 2.f}, {1.2f, 1.2f}, 0});
     if (state.is_game_over)
     {
-        Render::DrawSprite(Mln::Transform2D{state.wing_position, {.5f, .5f}, state.wing_rotation}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
+        DrawSprite(Mln::Transform2D{state.wing_position, {.5f, .5f}, state.wing_rotation}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
     }
     else
     {
-        Render::DrawSprite(wingMatrix, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
+        DrawSprite(wingMatrix, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
     }
     int frame = static_cast<int>(state.game_time * 2) % 2;
     SpriteAtlas::Sprite playerSprite = static_cast<SpriteAtlas::Sprite>(SpriteAtlas::PLAYER_FLOAT_1 + frame);
@@ -412,27 +432,28 @@ void Game::DrawSceneGame()
     {
         playerSprite = SpriteAtlas::PLAYER_HIT;
     }
-    Render::DrawSprite(playerMatrix, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(playerSprite));
+    DrawSprite(playerMatrix, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(playerSprite));
 
 
     
     char buffer[64];
     std::snprintf(buffer, 64, "%d", state.score);
-    Render::DrawText(buffer, {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, Render::TextAlignment::CENTER);
+    DrawText(state.font, buffer, {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
 
     // std::snprintf(buffer, 64, "%02.f", floorf(state.game_time / 60.f));
-    // Render::DrawText(buffer, {-10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, Render::TextAlignment::RIGHT);
-    // Render::DrawText(":", {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, Render::TextAlignment::CENTER);
+    // DrawText(state.font, buffer, {-10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_RIGHT);
+    // DrawText(state.font, ":", {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
     // std::snprintf(buffer, 64, "%02.f", floorf(fmodf(state.game_time, 60.f)));
-    // Render::DrawText(buffer, {10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, Render::TextAlignment::LEFT);
+    // DrawText(state.font, buffer, {10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_LEFT);
 
 
     if (state.is_game_over)
     {
-        Render::DrawText("Game Over!", {0, 0}, 1.f, TEXT_COLOR, Render::TextAlignment::CENTER);
+        DrawText(state.font, "Game Over!", {0, 0}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
     }
 }
 
 void Game::UnloadSceneGame()
 {
 }
+

@@ -10,6 +10,7 @@
 
 const char* shader_dir_path;
 int shader_dir_length;
+const char* output_dir;
 
 typedef void file_visitor_t(const char*);
 
@@ -84,7 +85,7 @@ void pack_shader(const char* shader_path)
 
     char scratch[512];
 
-    snprintf(scratch, 512, "%s/%s.h", "src/gen", shader_path + shader_dir_length + 1);
+    snprintf(scratch, 512, "%s/%s.h", output_dir, shader_path + shader_dir_length + 1);
     printf("Packing shader file \"%s\" into \"%s\"\n", shader_path, scratch);
 
 
@@ -141,7 +142,25 @@ void pack_shader(const char* shader_path)
 
 int main(int argc, char** argv)
 {
-    shader_dir_path = "./shaders";
+    if (argc < 2)
+    {
+        shader_dir_path = "./shaders";
+    }
+    else 
+    {
+        shader_dir_path = argv[1];
+    }
+    if (argc < 3)
+    {
+        output_dir = "./src/gl/gen";
+    }
+    else
+    {
+        output_dir = argv[2];
+    }
+
     shader_dir_length = strlen(shader_dir_path);
     traverse_directory(shader_dir_path, pack_shader);
+
+    return 0;
 }

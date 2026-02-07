@@ -6,3 +6,8 @@
 TODO.md
 tools/shader_packer/shader_packer
 tools/shader_packer/shader_packer.exe
+
+tools/sprite_packer
+demo.png
+font.png
+sound.raw

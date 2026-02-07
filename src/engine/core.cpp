@@ -12,7 +12,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include "graphics/renderer.hpp"
+#include "graphics_api.hpp"
 
 #include <cassert>
 
@@ -84,21 +84,7 @@ namespace Mln{
         glfwMakeContextCurrent(gCore.window);
         glfwSetFramebufferSizeCallback(gCore.window, framebuffer_size_callback);
 
-        // glad: load all OpenGL function pointers
-        // ---------------------------------------
-        #if defined (OPENGL_ES)
-        if (!gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress))
-        #else
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        #endif
-        {
-            std::cout << "Failed to initialize GLAD" << std::endl;
-            return ERR_GENERIC;
-        }
-
-        // TODO(takintug): This should be handled by the renderer
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        InitGraphics(width, height);
 
         #if !defined(PLATFORM_WEB)
         glfwSwapInterval(1);
@@ -118,6 +104,8 @@ namespace Mln{
 
     void UnloadWindow()
     {
+        ShutdownGraphics();
+
         glfwTerminate();
     }
 
@@ -165,10 +153,14 @@ namespace Mln{
         {
             gCore.input.current.mouse_buttons[button] = glfwGetMouseButton(gCore.window, button) == GLFW_PRESS;
         }
+
+        BeginDrawing();
     }
 
     void EndFrame()
     {
+        EndDrawing();
+
         glfwSwapBuffers(gCore.window);
         gCore.windowResized = false;
 
@@ -185,79 +177,6 @@ namespace Mln{
         }
     }
 
-    Shader LoadShader(const char *vertexText, const char *fragmentText)
-    {
-        bool hasError = false;
-
-        // build and compile our shader program
-        // ------------------------------------
-        // vertex shader
-        unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexText, NULL);
-        glCompileShader(vertexShader);
-        // check for shader compile errors
-        GLint success;
-        char infoLog[512];
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-            hasError = true;
-        }
-        // fragment shader
-        unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentText, NULL);
-        glCompileShader(fragmentShader);
-        // check for shader compile errors
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-            hasError = true;
-        }
-        // link shaders
-        unsigned int shaderProgram = glCreateProgram();
-        glAttachShader(shaderProgram, vertexShader);
-        glAttachShader(shaderProgram, fragmentShader);
-        glLinkProgram(shaderProgram);
-        // check for linking errors
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-            hasError = true;
-        }
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-
-
-        if (hasError)
-        {
-            return Shader{InvalidID};
-        }
-
-        return Shader{shaderProgram};
-    }
-
-    Texture LoadTexture(const char *path, bool filter, bool mipmaps)
-    {
-        Mln::Image image = LoadImage(path);
-        Texture texture = Render::LoadTexture(image, filter, mipmaps);
-        Mln::UnloadImage(image);
-        return texture;
-    }
-
-    Texture LoadTextureFromImage(Image image, bool filter, bool mipmaps)
-    {
-        return Render::LoadTexture(image, filter, mipmaps);
-    }
-
-    void UnloadTexture(Texture& texture)
-    {
-        Render::UnloadTexture(texture);
-    }
 
     Image LoadImage(const char *path)
     {
@@ -357,6 +276,11 @@ namespace Mln{
     Transform GetMatrix(Transform2D transform)
     {
         return HMM_Translate({transform.position.X, transform.position.Y, 0.f}) * HMM_Rotate_LH(transform.rotation, {0.f, 0.f, 1.f}) * HMM_Scale({transform.scale.X, transform.scale.Y, 1.f});
+    }
+
+    void* GetProcAddressPtr()
+    {
+        return (void*)glfwGetProcAddress;
     }
 
     // glfw: whenever the window size changed (by OS or user resize) this callback function executes
