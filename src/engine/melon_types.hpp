@@ -4,6 +4,16 @@
 
 #include "HandmadeMath.h"
 
+enum LogLevel
+{
+    LOG_TRACE,
+    LOG_DEBUG,
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ERROR,
+    LOG_FATAL,
+    LOG__COUNT,
+};
 
 namespace Mln
 {
@@ -15,7 +25,10 @@ namespace Mln
 
     typedef void* Font;
 
-    enum Error{
+
+
+    enum Error
+    {
         OK,
         ERR_GENERIC
     };
@@ -68,5 +81,16 @@ namespace Mln
     };
 
 }
+
+#if defined(__has_attribute)
+    #if __has_attribute(format)
+        #define ATTRIBUTE_FORMAT(fmt,va) __attribute__((format(printf,fmt,va)))
+    #endif
+#endif
+
+#ifndef ATTRIBUTE_FORMAT
+    #define ATTRIBUTE_FORMAT(fmt,va)
+#endif
+
 
 #endif // MELON_TYPES_HPP

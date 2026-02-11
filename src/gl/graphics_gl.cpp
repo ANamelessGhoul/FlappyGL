@@ -3,7 +3,6 @@
 #include "melon_types.hpp"
 #include "quad_renderer.hpp"
 
-#include <cassert>
 #include <cstdint>
 #include <glad/glad.h>
 
@@ -21,12 +20,9 @@
 
 #include <cstring>
 #include <cstdio>
-#include <iostream>
 
-#define STB_RECT_PACK_IMPLEMENTATION
 #include "stb_rect_pack.h"
 
-#define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
 #ifndef MAX_FONTS
@@ -65,7 +61,7 @@ void InitGraphics(int width, int height)
     if (!gladLoadGLLoader((GLADloadproc)Mln::GetProcAddressPtr()))
     #endif
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        Mln::PrintLog(LOG_ERROR, "Failed to initialize GLAD\n");
         return;
     }
 
@@ -86,6 +82,11 @@ void InitGraphics(int width, int height)
 void ShutdownGraphics()
 {
     ShutdownQuadRenderer();
+}
+
+void ResizeViewport(int width, int height)
+{
+    glViewport(0, 0, width, height);
 }
 
 void SetView(Mln::Transform view)
@@ -238,7 +239,7 @@ void DrawRectTextured(Mln::Transform transform, Mln::Texture texture, Mln::RectI
 
 Mln::Font LoadFont(const char* path)
 {
-    assert(state.font_count + 1 < MAX_FONTS && "Maximum font limit reached");
+    ASSERT(state.font_count + 1 < MAX_FONTS, "Maximum font limit reached");
     if (state.font_count + 1 >= MAX_FONTS)
     {
         return nullptr;
@@ -251,7 +252,7 @@ Mln::Font LoadFont(const char* path)
     // Get the next font slot
     Mln::id_t font_id = ++state.last_font_id;
     AtlasFont* font = &state.fonts[state.font_count];
-    assert(state.font_ids[state.font_count] == 0 && "The next unused font has a valid id!");
+    ASSERT(state.font_ids[state.font_count] == 0, "The next unused font has a valid id!");
     state.font_ids[state.font_count] = font_id;
     state.font_count++;
 
@@ -294,7 +295,7 @@ void UnloadFont(Mln::Font font)
     int font_index = 0;
     AtlasFont* atlas_font =_FindFont(font, &font_index);
 
-    assert(atlas_font != nullptr && "Font could not be found for unloading.");
+    ASSERT(atlas_font != nullptr, "Font could not be found for unloading.");
     if (atlas_font == nullptr)
     {
         return;
@@ -312,7 +313,7 @@ void UnloadFont(Mln::Font font)
 float MeasureText(Mln::Font font, const char* str)
 {
     AtlasFont* atlas_font = _FindFont(font, NULL);
-    assert(atlas_font && "Font not found");
+    ASSERT(atlas_font, "Font not found");
     int length = strlen(str);
 
     float x = 0;
@@ -340,7 +341,7 @@ float MeasureText(Mln::Font font, const char* str)
 void DrawText(Mln::Font font, const char *str, Mln::Vector2 position, float scale, Mln::Color color, TextAlign alignment)
 {
     AtlasFont* atlas_font = _FindFont(font, NULL);
-    assert(atlas_font && "Font not found");
+    ASSERT(atlas_font, "Font not found");
 
 
     SetTexture(atlas_font->texture);
@@ -411,7 +412,7 @@ Mln::Shader _LoadShader(const char *vertexText, const char *fragmentText)
     if (!success)
     {
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        Mln::PrintLog(LOG_ERROR, "Vertex shader compilation failed!\n%s", infoLog);
         hasError = true;
     }
     // fragment shader
@@ -423,7 +424,7 @@ Mln::Shader _LoadShader(const char *vertexText, const char *fragmentText)
     if (!success)
     {
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+        Mln::PrintLog(LOG_ERROR, "Fragment shader compilation failed!\n%s", infoLog);
         hasError = true;
     }
     // link shaders
@@ -435,7 +436,7 @@ Mln::Shader _LoadShader(const char *vertexText, const char *fragmentText)
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        Mln::PrintLog(LOG_ERROR, "Shader linking failed!\n%s", infoLog);
         hasError = true;
     }
     glDeleteShader(vertexShader);

@@ -7,6 +7,9 @@
 
 #include "graphics_api.hpp"
 #include "flappy_drawing.hpp"
+#include "melon_types.hpp"
+
+#include <cstdlib>
 
 using namespace Mln;
 
@@ -84,6 +87,7 @@ void Game::Init()
 {
     state.game_time = 0;
     state.game_scale = 1.f;
+    state.is_game_over = false;
 
     Vector2 viewportSize = Mln::GetViewportSize();
     SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
@@ -97,17 +101,13 @@ void Game::Init()
     state.current_scene->Init();
 
 
-
-
-    state.coin_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "coin.wav");
-    state.hurt_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "hurt.wav");
-    state.jump_sound = Mln::LoadSoundFromFileWave(RESOURCES_PATH "jump.wav");
+    state.coin_sound = LoadSoundFromFileWave(RESOURCES_PATH "coin.wav");
+    state.hurt_sound = LoadSoundFromFileWave(RESOURCES_PATH "hurt.wav");
+    state.jump_sound = LoadSoundFromFileWave(RESOURCES_PATH "jump.wav");
 
 
     state.pixel_font = LoadFont(RESOURCES_PATH "Kenney Pixel.ttf");
-    UnloadFont(state.pixel_font);
     state.font = LoadFont(RESOURCES_PATH "Kenney Future Narrow.ttf");
-    state.pixel_font = LoadFont(RESOURCES_PATH "Kenney Pixel.ttf");
     
     LoadSpriteAtlas();
 }
@@ -160,7 +160,7 @@ void Game::DrawGap(Vector2 position)
 
 void Game::TriggerGameOver()
 {
-    Mln::PlaySound(state.hurt_sound);
+    PlaySound(state.hurt_sound);
 
     state.is_game_over = true;
     state.player_speed = -PLAYER_JUMP_SPEED;
@@ -288,7 +288,7 @@ void Game::UpdateSceneGame(float delta)
             if (wasAheadOfPlayer && isBehindPlayer)
             {
                 state.score += 1;
-                Mln::PlaySound(state.coin_sound);
+                PlaySound(state.coin_sound);
             }
 
             // Find rightmost wall for spawning new walls
@@ -346,18 +346,17 @@ void Game::UpdateSceneGame(float delta)
         {
             state.player_speed -= PLAYER_JUMP_SPEED; 
             state.flap_timer = Game::FLAP_TIME;
-            Mln::PlaySound(state.jump_sound);
+            PlaySound(state.jump_sound);
         }
         
     }
+
     
     // Movement
     state.player_speed += delta * 0.5f * PLAYER_ACCELERATION;
     state.player_position.Y += delta * state.player_speed;
     state.player_speed += delta * 0.5f * PLAYER_ACCELERATION;
 
-
-    
     // Animation
     Vector2 velocity = {state.player_speed, state.wall_speed};
     float desired_rotation = atan2f(velocity.X, -velocity.Y) + HMM_PI32;
@@ -436,9 +435,8 @@ void Game::DrawSceneGame()
 
 
     
-    char buffer[64];
-    std::snprintf(buffer, 64, "%d", state.score);
-    DrawText(state.font, buffer, {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
+    const char* score_text = TextFormat("%d", state.score);
+    DrawText(state.font, score_text, {0, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
 
     // std::snprintf(buffer, 64, "%02.f", floorf(state.game_time / 60.f));
     // DrawText(state.font, buffer, {-10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_RIGHT);

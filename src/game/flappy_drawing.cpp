@@ -19,8 +19,8 @@ struct {
 
 void FeatherEdges(Mln::Image image, int feather_amount)
 {
-    assert(image.data && "Feathering only supported for valid images");
-    assert(image.components == 4 && "Feathering only supported for images with 4 components");
+    ASSERT(image.data, "Feathering only supported for valid images");
+    ASSERT(image.components == 4, "Feathering only supported for images with 4 components");
 
     Mln::Image temp_image = Mln::CreateImage(image.width, image.height, image.components);
 
@@ -115,7 +115,7 @@ void LoadSpriteAtlas()
 
     stbrp_init_target(&pack_ctx, MaxSpriteSheetSize, MaxSpriteSheetSize, pack_nodes, MaxSpriteSheetSize);
     bool success = stbrp_pack_rects(&pack_ctx, pack_rects, SpriteAtlas::Sprite::_LENGTH);
-    assert(success && "Could not pack textures");
+    ASSERT(success, "Could not pack textures");
 
     
 
@@ -135,14 +135,17 @@ void LoadSpriteAtlas()
 
         Mln::UnloadImage(images[i]);
     }
-    
+
+    // TODO: Use premultiplied alpha instead
+#if defined(FEATHER_SPRITE_ATLAS)
     FeatherEdges(image, 5);
+#endif
 
 #if defined(GENERATE_SPRITE_ATLAS)
     Mln::WriteImage(image, "demo.png");
 #endif
 
-    state.sprite_atlas_texture = ::LoadTextureFromImage(image, false, false);
+    state.sprite_atlas_texture = ::LoadTextureFromImage(image, true, true);
     Mln::UnloadImage(image);
 }
 

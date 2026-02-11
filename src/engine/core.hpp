@@ -13,15 +13,14 @@
 #endif
 
 
+
 namespace Mln
 {
-    struct InputState{
-        bool keys[KEY__COUNT];
-        bool mouse_buttons[MOUSE_BUTTON__COUNT];
-    };
-
-    Error InitWindow(int width, int height, const char* name);
+    Error InitWindow(int width, int height, const char* title); // title must have the same lifetime as the window or until SetWindowTitle is called
     void UnloadWindow();
+
+    void SetWindowTitle(const char* title); // title must have the same lifetime as the window or until SetWindowTitle is called
+
     bool WindowShouldClose();
     bool DidWindowResize();
     Vector2 GetViewportSize();
@@ -50,8 +49,18 @@ namespace Mln
     Vector2 TransformVector(Transform transform, Vector2 vector);
     Transform GetMatrix(Transform2D transform2D);
 
+    const char* TextFormat(const char* format, ...) ATTRIBUTE_FORMAT(1, 2);
+    void PrintLog(int logLevel, const char* format, ...) ATTRIBUTE_FORMAT(2, 3);
+
     void* GetProcAddressPtr();
-    
+
+    unsigned char *LoadFileBinary(const char *fileName, size_t *dataSize);
+    void UnloadFileBinary(unsigned char *data);
+    bool SaveFileBinary(const char *fileName, void *data, size_t dataSize);
+
+    char *LoadFileText(const char *fileName);
+    void UnloadFileText(char *text);
+    bool SaveFileText(const char *fileName, char *text);
 
 } // namespace Mln
 

@@ -38,15 +38,19 @@ namespace Mln
     struct Sound{
         SoundBuffer* buffer;
     };
-
-    int InitAudio();
-
-    Sound LoadSoundFromFileWave(const char* filepath);
-    Sound LoadSoundFromMemoryWave(uint8_t* data, size_t size);
-
-    void UnloadSound(Sound* sound);
-
-    void PlaySound(Sound sound);
 }
 
+extern "C"
+{
+
+    int InitAudio();
+    
+    Mln::Sound LoadSoundFromFileWave(const char* filepath);
+    Mln::Sound LoadSoundFromMemoryWave(uint8_t* data, size_t size);
+    
+    void UnloadSound(Mln::Sound* sound);
+    
+    void PlaySound(Mln::Sound sound);
+}
+    
 #endif // AUDIO_HPP

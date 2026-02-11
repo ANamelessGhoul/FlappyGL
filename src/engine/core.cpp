@@ -1,100 +1,53 @@
 #include "core.hpp"
 #include "keys.h"
+#include "core_data.hpp"
+#include "melon_types.hpp"
+#include "platform_api.hpp"
 
-#include <iostream>
+#include <cstring>
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
+#define STBI_NO_STDIO
+#define STBI_ASSERT ASSERT_C
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STBIW_ASSERT ASSERT_C
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include "graphics_api.hpp"
+#define STB_SPRINTF_IMPLEMENTATION
+#include "stb_sprintf.h"
 
-#include <cassert>
+#define STBRP_ASSERT ASSERT_C
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb_rect_pack.h"
+
+#define STBTT_assert ASSERT_C
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+
+
+#include "graphics_api.hpp"
 
 #include "audio.hpp"
 
 namespace Mln{
-    constexpr int deltaCacheSize = 16;
-    static_assert((deltaCacheSize & (deltaCacheSize - 1)) == 0, "deltaCacheSize must be a power of 2");
+    CoreData gCore;
 
-    struct {
-        GLFWwindow* window = nullptr;
-        bool shouldClose = false;
-        bool windowResized = false;
-        Vector2 viewportSize = {0, 0};
-
-        double time;
-        double delta;
-        double deltaCache[deltaCacheSize];
-        int deltaCacheIndex = 0;
-        int deltaCacheFrameCounter = 0;
-
-        struct{
-            InputState current;
-            InputState previous;
-        } input;
-
-
-
-    } gCore;
-
-
-
-    void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-    void processInput(GLFWwindow *window);
-
-
-    Error InitWindow(int width, int height, const char *name)
+    Error InitWindow(int width, int height, const char *title)
     {
-        
-        // glfw: initialize and configure
-        // ------------------------------
-        glfwInit();
-        
-    #if defined (OPENGL_ES)
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    #else
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    #endif
+        gCore.viewport.width = width;
+        gCore.viewport.height = height;
+        gCore.windowTitle = title;
 
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    #ifdef __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
-
-        // glfw window creation
-        // --------------------
-        gCore.window = glfwCreateWindow(width, height, name, NULL, NULL);
-        if (gCore.window == NULL)
-        {
-            std::cout << "Failed to create GLFW window" << std::endl;
-            glfwTerminate();
-            return ERR_GENERIC;
-        }
-        glfwMakeContextCurrent(gCore.window);
-        glfwSetFramebufferSizeCallback(gCore.window, framebuffer_size_callback);
+        PlatformInit();
+        PlatformInitTimer();
 
         InitGraphics(width, height);
 
-        #if !defined(PLATFORM_WEB)
-        glfwSwapInterval(1);
-        #endif
-
-        gCore.viewportSize = {(float)width, (float)height};
-
         InitAudio();
 
-        glfwSetTime(0);
         gCore.time = 0;
         gCore.deltaCacheIndex = 0;
         gCore.deltaCacheFrameCounter = 0;
@@ -105,13 +58,18 @@ namespace Mln{
     void UnloadWindow()
     {
         ShutdownGraphics();
+        PlatformShutdown();
+    }
 
-        glfwTerminate();
+    void SetWindowTitle(const char* title)
+    {
+        gCore.windowTitle = title;
+        PlatformSetWindowTitle(title);
     }
 
     bool WindowShouldClose()
     {
-        return glfwWindowShouldClose(gCore.window) || gCore.shouldClose;
+        return PlatformWindowShouldClose() || gCore.shouldClose;
     }
 
     bool DidWindowResize()
@@ -121,7 +79,7 @@ namespace Mln{
 
     Vector2 GetViewportSize()
     {
-        return gCore.viewportSize;
+        return {(float)gCore.viewport.width, (float)gCore.viewport.height};
     }
 
     double GetFrameTime()
@@ -141,19 +99,10 @@ namespace Mln{
 
     void BeginFrame()
     {
-        glfwPollEvents();
         gCore.input.previous = gCore.input.current;
-
-        for (int key = 0; key < KEY__COUNT; key++) 
-        {
-            gCore.input.current.keys[key] = glfwGetKey(gCore.window, key) == GLFW_PRESS;
-        }
-
-        for (int button = 0; button < MOUSE_BUTTON__COUNT; button++) 
-        {
-            gCore.input.current.mouse_buttons[button] = glfwGetMouseButton(gCore.window, button) == GLFW_PRESS;
-        }
-
+        PlatformBeginFrame();
+        PlatformPollInput();
+        
         BeginDrawing();
     }
 
@@ -161,10 +110,11 @@ namespace Mln{
     {
         EndDrawing();
 
-        glfwSwapBuffers(gCore.window);
+        PlatformEndFrame();
         gCore.windowResized = false;
 
-        double newTime = glfwGetTime();
+        
+        double newTime = PlatformGetTime();
         gCore.delta = newTime - gCore.time;
         gCore.time = newTime;
 
@@ -183,13 +133,16 @@ namespace Mln{
         Image image{0};
 
 #if defined(_DEBUG)
-        std::cout << "INFO: loading image: " << path << std::endl;
+        PrintLog(LOG_DEBUG, "loading image: %s\n", path);
 #endif
+        size_t file_len = 0;
+        unsigned char* file_data = LoadFileBinary(path, &file_len);
+        image.data = stbi_load_from_memory(file_data, (int)file_len, &image.width, &image.height, &image.components, 4);
+        UnloadFileBinary(file_data);
 
-        image.data = stbi_load(path, &image.width, &image.height, &image.components, 4);
         if (!image.data)
         {
-            std::cout << "ERROR: Failed to load image: " << path << std::endl;
+            PrintLog(LOG_ERROR, "Failed to load image: %s\n", path);
         }
 
         return image;
@@ -216,7 +169,7 @@ namespace Mln{
     
     void ImageDrawImage(Image dst, RectI dst_rect, Image src, RectI src_rect)
     {
-        assert(src.components == dst.components && "Cannot draw if components aren't the same");
+        ASSERT(src.components == dst.components, "Cannot draw if components aren't the same");
 
         if (src_rect.width == dst_rect.width && src_rect.height == dst_rect.height)
         {
@@ -278,21 +231,92 @@ namespace Mln{
         return HMM_Translate({transform.position.X, transform.position.Y, 0.f}) * HMM_Rotate_LH(transform.rotation, {0.f, 0.f, 1.f}) * HMM_Scale({transform.scale.X, transform.scale.Y, 1.f});
     }
 
+    const char* TextFormat(const char* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        int requiredByteCount = stbsp_vsnprintf(gCore.textBuffer, TEXT_BUFFER_SIZE, format, args);
+        va_end(args);
+
+        return gCore.textBuffer;
+    }
+
+    void PrintLog(int logLevel, const char* format, ...)
+    {
+        const char* prefix = NULL;
+        switch (logLevel) {
+            case LOG_TRACE: {
+                prefix = "TRACE: ";
+            } break;
+            case LOG_DEBUG: {
+                prefix = "DEBUG: ";
+            } break;
+            case LOG_INFO: {
+                prefix = "INFO : ";
+            } break;
+            case LOG_WARNING: {
+                prefix = "WARN : ";
+            } break;
+            case LOG_ERROR: {
+                prefix = "ERROR: ";
+            } break;
+            case LOG_FATAL: {
+                prefix = "FATAL: ";
+            } break;
+        }
+
+        char* body = stpcpy(gCore.textBuffer, prefix); // returns null terminator of dest
+
+        va_list args;
+        va_start(args, format);
+        int requiredByteCount = stbsp_vsnprintf(body, TEXT_BUFFER_SIZE, format, args);
+        va_end(args);
+
+        PlatformPrint(gCore.textBuffer);
+
+    }
+
+
     void* GetProcAddressPtr()
     {
-        return (void*)glfwGetProcAddress;
+        return PlatformGetProcAddressPtr();
     }
 
-    // glfw: whenever the window size changed (by OS or user resize) this callback function executes
-    // ---------------------------------------------------------------------------------------------
-    void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+
+    unsigned char *LoadFileBinary(const char *fileName, size_t *dataSize)
     {
-        // make sure the viewport matches the new window dimensions; note that width and 
-        // height will be significantly larger than specified on retina displays.
-        glViewport(0, 0, width, height);
-        gCore.windowResized = true;
-        gCore.viewportSize = {(float)width, (float)height};
+        size_t size = 0;
+        unsigned char* bytes = PlatformLoadFileBinary(fileName, &size);
+        if (dataSize)
+        {
+            *dataSize = size;
+        }
+        return bytes;
     }
 
+    void UnloadFileBinary(unsigned char *data)
+    {
+        PlatformUnloadFileBinary(data);
+    }
+
+    bool SaveFileBinary(const char *fileName, void *data, size_t dataSize)
+    {
+        return PlatformSaveFileBinary(fileName, data, dataSize);
+    }
+
+    char *LoadFileText(const char *fileName)
+    {
+        return PlatformLoadFileText(fileName);
+    }
+
+    void UnloadFileText(char *text)
+    {
+        PlatformUnloadFileText(text);
+    }
+
+    bool SaveFileText(const char *fileName, char *text)
+    {
+        return PlatformSaveFileText(fileName, text);
+    }
 
 }

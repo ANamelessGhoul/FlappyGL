@@ -17,6 +17,7 @@ enum TextAlign
 void InitGraphics(int width, int height);
 void ShutdownGraphics();
 
+void ResizeViewport(int width, int height);
 
 void SetView(Mln::Transform view);
 void SetProjection(Mln::Transform proj);

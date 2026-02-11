@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+    <script src="./app.js"></script>
+    <style>
+        html {
+            margin: 0;
+        }
+        body {
+            margin: 0;
+        }
+        #game {
+            height: 100%;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+
+    <script>
+        const { protocol } = window.location;
+        const isHosted = protocol !== "file:";
+        let mlnlibJs = undefined;
+
+        function startMlnlib(){
+            if (isHosted) {
+                if (mlnlibJs !== undefined) {
+                    mlnlibJs.stop();
+                }
+                mlnlibJs = new MlnlibJs();
+                mlnlibJs.start({
+                    wasmPath: "main.wasm",
+                    canvasId: "game",
+                });
+            } else {
+                window.addEventListener("load", () => {
+                    document.body.innerHTML = `
+                        <div class="not-hosted-msg">
+                            <div class="important">
+                                <p>Unfortunately, due to CORs restrictions, the wasm assembly cannot be fetched.</p>
+                                <p>Please navigate to this location using a web server.</p>
+                                <p>If you have Python 3 on your system you can just do:</p>
+                            </div>
+                            <code>$ python3 -m http.server 6969</code>
+                        </div>
+                        `;
+                });
+            }
+        }
+
+        startMlnlib();
+    </script>
+</body>

@@ -1,15 +1,16 @@
 #include "audio.hpp"
-#include <cassert>
+#include "core.hpp"
+#include "melon_types.hpp"
 #include <cstdlib>
 #include <cstring>
-#include <stdio.h>
+#include <stdint.h>
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
 #include <cstdio>
 
-namespace Mln{
+using namespace Mln;
 
     typedef enum
     {
@@ -82,7 +83,7 @@ namespace Mln{
                 for (int i = 0; i < iterator->count; i++)
                 {
                     SoundBuffer* buffer = &iterator->buffers[i];
-                    assert(buffer != NULL && "There should not be any null buffers in the buffer_list");
+                    ASSERT(buffer != NULL, "There should not be any null buffers in the buffer_list");
 
                     if (!buffer->playing)
                     {
@@ -138,21 +139,16 @@ namespace Mln{
 
     Sound LoadSoundFromFileWave(const char *filepath)
     {
-        FILE* file = fopen(filepath, "rb");
-        if (!file)
+        size_t file_size = 0;
+        uint8_t* file_content = Mln::LoadFileBinary(filepath, &file_size);
+        if (!file_content)
         {
             return Sound{0};
         }
-        fseek(file, 0, SEEK_END);
-        long fsize = ftell(file);
-        fseek(file, 0, SEEK_SET);
 
-        uint8_t* file_content = (uint8_t*)malloc(fsize);
-        fread(file_content, fsize, 1, file);
-        
-        Sound sound = LoadSoundFromMemoryWave(file_content, fsize);
-        
-        free(file_content);
+        Sound sound = LoadSoundFromMemoryWave(file_content, file_size);
+
+        Mln::UnloadFileBinary(file_content);
         
         return sound;
 
@@ -173,32 +169,32 @@ namespace Mln{
 
         if (!CompareBytes(&cursor, end, (const uint8_t*)"RIFF", 4))
         {
-            fprintf(stderr, "Incorrect RIFF tag\n");
+            PrintLog(LOG_ERROR, "Incorrect RIFF tag\n");
             return Sound{};
         }
 
         uint8_t filesize_bytes[4];
         if (!ReadBytes(&cursor, end, 4, filesize_bytes))
         {
-            fprintf(stderr, "Could not read filesize hint\n");
+            PrintLog(LOG_ERROR, "Could not read filesize hint\n");
             return Sound{};
         }
         int32_t filesize = BYTES_TO_INT32(filesize_bytes);
         if (filesize != size - 8)
         {
-            fprintf(stderr, "Incorrect filesize hint, file may be corrupted\n");
+            PrintLog(LOG_ERROR, "Incorrect filesize hint, file may be corrupted\n");
             return Sound{};
         }
 
         if (!CompareBytes(&cursor, end, (const uint8_t*)"WAVE", 4))
         {
-            fprintf(stderr, "Incorrect WAVE tag\n");
+            PrintLog(LOG_ERROR, "Incorrect WAVE tag\n");
             return Sound{};
         }
 
         if (!CompareBytes(&cursor, end, (const uint8_t*)"fmt ", 4))
         {
-            fprintf(stderr, "Incorrect fmt tag\n");
+            PrintLog(LOG_ERROR, "Incorrect fmt tag\n");
             return Sound{};
         }
         
@@ -207,7 +203,7 @@ namespace Mln{
 
         if (fmt_size < 16)
         {
-            fprintf(stderr, "Incorrect fmt size, must be at least 16 bytes\n");
+            PrintLog(LOG_ERROR, "Incorrect fmt size, must be at least 16 bytes\n");
         }
         
         uint8_t* format_cursor = cursor;
@@ -216,7 +212,7 @@ namespace Mln{
         format_cursor += 2;
         if (audio_format != WAVE_PCM && audio_format != WAVE_FLOAT)
         {
-            fprintf(stderr, "Could not recognise audio format\n");
+            PrintLog(LOG_ERROR, "Could not recognise audio format\n");
         }
 
         int32_t nb_channels = BYTES_TO_INT16(format_cursor);
@@ -239,7 +235,7 @@ namespace Mln{
 
         if (!CompareBytes(&cursor, end, (const uint8_t*)"data", 4))
         {
-            fprintf(stderr, "Incorrect data tag\n");
+            PrintLog(LOG_ERROR, "Incorrect data tag\n");
             return Sound{};
         }
 
@@ -282,7 +278,7 @@ namespace Mln{
         
         if (!owner)
         {
-            fprintf(stderr, "Could not find sound to be removed.\n");
+            PrintLog(LOG_ERROR, "Could not find sound to be removed.\n");
             return;
         }
 
@@ -328,13 +324,16 @@ namespace Mln{
 
     Sound ConvertRawSound(RawSound raw_sound)
     {
-        assert((int)ma_format_count == (int)SOUND_FORMAT_COUNT_ && "Invalid mapping between sound formats");
+        ASSERT((int)ma_format_count == (int)SOUND_FORMAT_COUNT_, "Invalid mapping between sound formats");
 
         ma_format format_in = (ma_format) raw_sound.format;
         ma_uint32 frame_count_in = raw_sound.buffer_size / (raw_sound.channels * raw_sound.bytes_per_sample);
 
         ma_uint32 frame_count = (ma_uint32)ma_convert_frames(NULL, 0, gAudio.device.playback.format, gAudio.device.playback.channels, gAudio.device.sampleRate, NULL, frame_count_in, format_in, raw_sound.channels, raw_sound.sample_rate);
-        if (frame_count == 0) fprintf(stderr, "SOUND: Failed to get frame count for format conversion");
+        if (frame_count == 0) 
+        {
+            PrintLog(LOG_ERROR, "SOUND: Failed to get frame count for format conversion\n");
+        }
 
 
 
@@ -343,8 +342,10 @@ namespace Mln{
 
 
         frame_count = (ma_uint32)ma_convert_frames(converted_audio, frame_count, gAudio.device.playback.format, gAudio.device.playback.channels, gAudio.device.sampleRate, raw_sound.buffer, frame_count_in, format_in, raw_sound.channels, raw_sound.sample_rate);
-        if (frame_count == 0) fprintf(stderr, "SOUND: Failed format conversion");
-
+        if (frame_count == 0)
+        {
+            PrintLog(LOG_ERROR, "SOUND: Failed format conversion\n");
+        }
 
         SoundBuffer buffer = {};
         buffer.data = converted_audio;
@@ -453,4 +454,3 @@ namespace Mln{
         fclose(debug_write);
     }
 
-}

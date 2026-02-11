@@ -2,6 +2,7 @@
 .cache
 /build
 /build_web
+/wasm/main.wasm
 /bin
 TODO.md
 tools/shader_packer/shader_packer

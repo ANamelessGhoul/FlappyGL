@@ -10,7 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 
-file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glad/*.c")
+file(GLOB GAME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/game/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/*.cpp")
+file(GLOB GL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/gl/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glad/src/*.c")
+list(APPEND GAME_SOURCES ${GL_SOURCES})
+list(APPEND GAME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/platform/platform_desktop_glfw.cpp")
 
 add_executable("${CMAKE_PROJECT_NAME}" "${GAME_SOURCES}")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
@@ -36,6 +39,7 @@ if (EMSCRIPTEN)
 
     set(CMAKE_EXECUTABLE_SUFFIX ".html") # This line is used to set your executable to build with the emscripten html template so that you can directly open it.
 else()
+    target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC "PLATFORM_DESKTOP")
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw")
 endif()
 

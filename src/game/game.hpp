@@ -3,6 +3,7 @@
 
 #include "core.hpp"
 #include "audio.hpp"
+#include "melon_types.hpp"
 
 namespace Game{
     constexpr int GAME_HEIGHT = 600;
@@ -57,23 +58,23 @@ namespace Game{
         float wall_speed = 128;
 
         // Player
-        Mln::Vector2 player_position = {0, 0};
-        float player_speed = 0;
-        float player_rotation = 0;
+        Mln::Vector2 player_position;
+        float player_speed;
+        float player_rotation;
 
-        float wing_rotation = 0;
-        float flap_timer = 0;
+        float wing_rotation;
+        float flap_timer;
 
-        Mln::Vector2 wing_position = {0, 0};
-        Mln::Vector2 wing_velocity = {0, 0};
+        Mln::Vector2 wing_position;
+        Mln::Vector2 wing_velocity;
 
         // Game State
-        bool is_game_over = false;
-        int score = 0;
+        bool is_game_over;
+        int score ;
         float death_time;
 
         // Background
-        float background_scroll = 0.f;
+        float background_scroll;
 
     };
 
