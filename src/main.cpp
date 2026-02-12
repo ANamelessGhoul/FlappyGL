@@ -2,8 +2,8 @@
 #include "game/game.hpp"
 
 // settings
-const int SCR_WIDTH = 800;
-const int SCR_HEIGHT = 600;
+const int SCR_WIDTH = 1280;
+const int SCR_HEIGHT = 720;
 
 #if defined(EMSCRIPTEN)
 #include <emscripten.h>

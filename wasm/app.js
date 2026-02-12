@@ -44,6 +44,8 @@ class MlnlibJs {
         this.quit = false;
         this.projection_matrix = {a:1.0, b:0, c:0, d:1.0, e:0, f:0};
         this.view_matrix = {a:1.0, b:0, c:0, d:1.0, e:0, f:0};
+        this.desired_width = undefined;
+        this.desired_height = undefined;
     }
 
     constructor() {
@@ -86,13 +88,26 @@ class MlnlibJs {
         const mouseButtonUp = (e) => {
             this.currentPressedMouseButtonState.delete(glfwMouseButtonMapping[e.button]);
         };
+        // TODO: Touch events should probably keep track of each touch to account for multiple active touches
+        const touchDown = (e) => {
+            this.currentPressedMouseButtonState.add(0);
+        };
+        const touchUp = (e) => {
+            this.currentPressedMouseButtonState.delete(0);
+        };
+        const resize = (e) => {
+            this.fitCanvas();
+        };
         window.addEventListener("keydown", keyDown);
         window.addEventListener("keyup", keyUp);
         window.addEventListener("wheel", wheelMove);
         window.addEventListener("mousemove", mouseMove);
-        window.addEventListener("mousedown", mouseButtonDown)
-        window.addEventListener("mouseup", mouseButtonUp)
-
+        window.addEventListener("mousedown", mouseButtonDown);
+        window.addEventListener("mouseup", mouseButtonUp);
+        window.addEventListener("touchstart", touchDown);
+        window.addEventListener("touchend", touchUp);
+        window.addEventListener("resize", resize);
+        
         this.exports.main();
         const next = (timestamp) => {
             if (this.quit) {
@@ -123,24 +138,36 @@ class MlnlibJs {
         })
     }
 
+    fitCanvas() {
+        if (this.desired_width != undefined && this.desired_height != undefined)
+        {
+            const new_width = window.innerWidth;
+            const new_height = window.innerHeight;
+            const scale = Math.min(new_width / this.desired_width, new_height / this.desired_height);
+            this.ctx.canvas.width = scale * this.desired_width;
+            this.ctx.canvas.height = scale * this.desired_height;
+            
+            // This makes 0,0 the center of the canvas
+            this.projection_matrix = {
+                a: 1,
+                b: 0,
+                c: 0,
+                d: 1,
+                e: this.ctx.canvas.width / 2.0,
+                f: this.ctx.canvas.height / 2.0,
+            }
+        }
+    }
 
     WasmSetMainLoop(entry) {
         this.entryFunction = this.exports.__indirect_function_table.get(entry);
     }
 
     InitGraphics(width, height) {
-        this.ctx.canvas.width = width;
-        this.ctx.canvas.height = height; 
+        this.desired_width = width;
+        this.desired_height = height;
 
-        // This makes 0,0 the origin
-        this.projection_matrix = {
-            a: 1,
-            b: 0,
-            c: 0,
-            d: 1,
-            e: this.ctx.canvas.width / 2.0,
-            f: this.ctx.canvas.height / 2.0,
-        }
+        this.fitCanvas();
     }
 
     InitAudio() {
