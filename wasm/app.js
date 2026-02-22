@@ -90,10 +90,21 @@ class MlnlibJs {
         };
         // TODO: Touch events should probably keep track of each touch to account for multiple active touches
         const touchDown = (e) => {
+            const { touches, changedTouches } = e.originalEvent ?? e;
+            const touch = touches[0] ?? changedTouches[0];
+            this.currentMousePosition = {x: touch.pageX, y: touch.pageY};
             this.currentPressedMouseButtonState.add(0);
         };
         const touchUp = (e) => {
+            const { touches, changedTouches } = e.originalEvent ?? e;
+            const touch = touches[0] ?? changedTouches[0];
+            this.currentMousePosition = {x: touch.pageX, y: touch.pageY};
             this.currentPressedMouseButtonState.delete(0);
+        };
+        const touchMove = (e) => {
+            const { touches, changedTouches } = e.originalEvent ?? e;
+            const touch = touches[0] ?? changedTouches[0];
+            this.currentMousePosition = {x: touch.pageX, y: touch.pageY};
         };
         const resize = (e) => {
             this.fitCanvas();
@@ -106,6 +117,7 @@ class MlnlibJs {
         window.addEventListener("mouseup", mouseButtonUp);
         window.addEventListener("touchstart", touchDown);
         window.addEventListener("touchend", touchUp);
+        window.addEventListener("touchmove", touchMove);
         window.addEventListener("resize", resize);
         
         this.exports.main();
@@ -147,14 +159,13 @@ class MlnlibJs {
             this.ctx.canvas.width = scale * this.desired_width;
             this.ctx.canvas.height = scale * this.desired_height;
             
-            // This makes 0,0 the center of the canvas
             this.projection_matrix = {
                 a: 1,
                 b: 0,
                 c: 0,
                 d: 1,
-                e: this.ctx.canvas.width / 2.0,
-                f: this.ctx.canvas.height / 2.0,
+                e: 0,
+                f: 0,
             }
         }
     }
@@ -362,6 +373,16 @@ class MlnlibJs {
         return this.ctx.canvas.height;
     }
 
+    JsGetMouseX() {
+        const bcrect = this.ctx.canvas.getBoundingClientRect();
+        return this.currentMousePosition.x - bcrect.left;
+    }
+
+    JsGetMouseY() {
+        const bcrect = this.ctx.canvas.getBoundingClientRect();
+        return this.currentMousePosition.y - bcrect.top;
+    }
+
     rand() {
         return Math.random() * 2147483647; // 0, RAND_MAX
     }
@@ -389,7 +410,7 @@ class MlnlibJs {
     DrawRectTextured(transform_ptr, texture_ptr, texture_rect_ptr, color_ptr) { 
         // TODO: tint with color
 
-        // Transform: 4x4 float 32
+        // Matrix: 4x4 float 32
         // Texture: id(32) width(32) height(32)
         // Rect: x(32) y(32) width(32) height(32)
         const buffer = this.exports.memory.buffer;
@@ -408,6 +429,46 @@ class MlnlibJs {
         this.ctx.drawImage(image, rect[0], rect[1], rect[2], rect[3], -rect[2] / 2.0, -rect[3] / 2.0, rect[2], rect[3]);
     }
 
+    DrawRectTexturedNinePatch(transform_ptr, rect_ptr, texture_ptr, texture_rect_ptr, color_ptr, margins_ptr) {
+        const buffer = this.exports.memory.buffer;
+        const transform = new Float32Array(buffer, transform_ptr, 16);
+        const rect = new Float32Array(buffer, rect_ptr, 4);
+        const texture = new Uint32Array(buffer, texture_ptr, 3);
+        const texture_rect = new Uint32Array(buffer, texture_rect_ptr, 4);
+        const margins = new Float32Array(buffer, margins_ptr, 4);
+
+        const [rect_x, rect_y, rect_width, rect_height] = rect;
+        const [uv_x, uv_y, uv_width, uv_height] = texture_rect;
+        const [margin_x, margin_y, margin_z, margin_w] = margins;
+
+
+        this.ctx.setTransform(this.projection_matrix);
+        this.ctx.transform(this.view_matrix.a, this.view_matrix.b, this.view_matrix.c, this.view_matrix.d, this.view_matrix.e, this.view_matrix.f);
+        this.ctx.transform(transform[0], transform[1], transform[4], transform[5], transform[12], transform[13]);
+
+
+        const image = this.images[texture[0]];
+        // top left
+        this.ctx.drawImage(image, /* Source */ uv_x, uv_y, margin_x, margin_y, /* Destination */ rect_x, rect_y, margin_x, margin_y);
+        // top right
+        this.ctx.drawImage(image, /* Source */ uv_x + uv_width - margin_z, uv_y, margin_z, margin_y, /* Destination */ rect_x + rect_width - margin_z, rect_y, margin_z, margin_y);
+        // bottom left
+        this.ctx.drawImage(image, /* Source */ uv_x, uv_y + uv_height - margin_w, margin_x, margin_w, /* Destination */ rect_x, rect_y + rect_height - margin_w, margin_x, margin_w);
+        // bottom right
+        this.ctx.drawImage(image, /* Source */ uv_x + uv_width - margin_z, uv_y + uv_height - margin_w, margin_z, margin_w, /* Destination */ rect_x + rect_width - margin_z, rect_y + rect_height - margin_w, margin_z, margin_w);
+        // left
+        this.ctx.drawImage(image, /* Source */ uv_x, uv_y + margin_y, margin_x, uv_height - margin_y - margin_w, /* Destination */ rect_x, rect_y + margin_y, margin_x, rect_height - (margin_y + margin_w));
+        // right
+        this.ctx.drawImage(image, /* Source */ uv_x + uv_width - margin_z, uv_y + margin_y, margin_z, uv_height - margin_y - margin_w, /* Destination */ rect_x + rect_width - margin_z, rect_y + margin_y, margin_z, rect_height - (margin_y + margin_w));
+        // top
+        this.ctx.drawImage(image, /* Source */ uv_x + margin_x, uv_y, uv_width - margin_x - margin_z, margin_y, /* Destination */ rect_x + margin_x, rect_y, rect_width - (margin_x + margin_z), margin_y);
+        // bottom
+        this.ctx.drawImage(image, /* Source */ uv_x + margin_x, uv_y + uv_height - margin_w, uv_width - margin_x - margin_z, margin_w, /* Destination */ rect_x + margin_x, rect_y + rect_height - margin_w, rect_width - (margin_x + margin_z), margin_w);
+        // center
+        this.ctx.drawImage(image, /* Source */ uv_x + margin_x, uv_y + margin_y, uv_width - (margin_x + margin_z), uv_height - (margin_y + margin_w), /* Destination */ rect_x + margin_x, rect_y + margin_y, rect_width - (margin_x + margin_z), rect_height - (margin_y + margin_w));
+
+    }
+
     // void DrawText(Mln::Font font, const char *str, Mln::Vector2 position, float scale, Mln::Color color, TextAlign alignment = TEXT_ALIGN_LEFT);
     DrawText(font_id, text_ptr, position_ptr, font_scale, color_ptr, alignment) {
         const buffer = this.exports.memory.buffer;
@@ -421,7 +482,7 @@ class MlnlibJs {
         this.ctx.font = `${font_size}px Font_${font_id}`;
 
         const text_size = this.ctx.measureText(text);
-        const text_width = text_size.width;
+        const text_width = text_size.actualBoundingBoxRight + text_size.actualBoundingBoxLeft;
         const text_height = text_size.height;
 
         var offsetX = 0;
@@ -439,6 +500,16 @@ class MlnlibJs {
         for (var i = 0; i < lines.length; i++) {
             this.ctx.fillText(lines[i], posX + offsetX, posY + (i * font_size));
         }
+    }
+
+    MeasureText(font_id, text_ptr) {
+        const buffer = this.exports.memory.buffer;
+        const text = cstr_by_ptr(buffer, text_ptr);
+        const font_size = 48;
+        this.ctx.font = `${font_size}px Font_${font_id}`;
+        const text_metrics = this.ctx.measureText(text);
+
+        return text_metrics.actualBoundingBoxRight + text_metrics.actualBoundingBoxLeft;
     }
 
     PlatformGetTime() {

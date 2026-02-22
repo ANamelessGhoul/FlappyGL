@@ -1,6 +1,8 @@
 #include "game.hpp"
+#include "HandmadeMath.h"
 #include "audio.hpp"
 #include "core.hpp"
+#include "game/sprite_atlas.hpp"
 #include "keys.h"
 #include <cmath>
 #include <cstdio>
@@ -86,20 +88,17 @@ namespace Game
 void Game::Init()
 {
     state.game_time = 0;
-    state.game_scale = 1.f;
     state.is_game_over = false;
 
-    Vector2 viewportSize = Mln::GetViewportSize();
-    SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
+    state.high_score = 0; // TODO: Load this from a file
     
+    Vector2 viewportSize = Mln::GetViewportSize();
+    SetProjection(HMM_Orthographic_LH_NO(0, viewportSize.X, viewportSize.Y, 0, -1.f, 1.f));
     float horizontal_scale = viewportSize.X / GAME_WIDTH;
     float vertical_scale = viewportSize.Y / GAME_HEIGHT;
-    float scale = HMM_MIN(horizontal_scale, vertical_scale);
-    SetView(HMM_Scale({scale, scale, 1.f}));
-
-    state.current_scene = &MainMenuScene;
-    state.current_scene->Init();
-
+    state.game_scale = HMM_MIN(horizontal_scale, vertical_scale);
+    state.view_matrix = HMM_Translate({viewportSize.X / 2, viewportSize.Y / 2, 0}) * HMM_Scale({state.game_scale, state.game_scale, 1.f});
+    SetView(state.view_matrix);
 
     state.coin_sound = LoadSoundFromFileWave(RESOURCES_PATH "coin.wav");
     state.hurt_sound = LoadSoundFromFileWave(RESOURCES_PATH "hurt.wav");
@@ -110,6 +109,9 @@ void Game::Init()
     state.font = LoadFont(RESOURCES_PATH "Kenney Future Narrow.ttf");
     
     LoadSpriteAtlas();
+
+
+    ChangeSceneTo(&MainMenuScene);
 }
 
 void Game::Update(float delta)
@@ -118,11 +120,12 @@ void Game::Update(float delta)
     if(Mln::DidWindowResize())
     {
         Vector2 viewportSize = Mln::GetViewportSize();
-        SetProjection(HMM_Orthographic_LH_NO(-viewportSize.X / 2, viewportSize.X / 2, viewportSize.Y / 2, -viewportSize.Y / 2, -1.f, 1.f));
+        SetProjection(HMM_Orthographic_LH_NO(0, viewportSize.X, viewportSize.Y, 0, -1.f, 1.f));
         float horizontal_scale = viewportSize.X / GAME_WIDTH;
         float vertical_scale = viewportSize.Y / GAME_HEIGHT;
         state.game_scale = HMM_MIN(horizontal_scale, vertical_scale);
-        SetView(HMM_Scale({state.game_scale, state.game_scale, 1.f}));
+        state.view_matrix = HMM_Translate({viewportSize.X / 2, viewportSize.Y / 2, 0}) * HMM_Scale({state.game_scale, state.game_scale, 1.f});
+        SetView(state.view_matrix);
     }
 
     state.current_scene->Update(delta);
@@ -168,11 +171,21 @@ void Game::TriggerGameOver()
     state.wing_position = state.player_position;
     state.wing_velocity = {-rand_flt01() * 100.f, -rand_flt01() * 100.f};
     state.death_time = state.game_time;
+
+    if (state.score > state.high_score)
+    {
+        state.high_score = state.score;
+        state.new_high_score = true;
+    }
+
 }
 
 void Game::ChangeSceneTo(const Scene *scene)
 {
-    state.current_scene->Unload();
+    if (state.current_scene)
+    {
+        state.current_scene->Unload();
+    }
     state.current_scene = scene;
     state.current_scene->Init();
 }
@@ -230,7 +243,8 @@ void Game::UpdateSceneMainMenu(float delta)
 
 void Game::DrawSceneMainMenu()
 {
-    float player_ratio = sinf(state.game_time * 0.1f);
+    float player_ratio = sinf(state.game_time * 0.9f) * 0.25f;
+
     float background_size = floorf(GAME_HEIGHT * 1.2f);
 
     DrawSprite({-background_size + 1 + state.background_scroll, -player_ratio * GAME_HEIGHT * 0.1f}, {background_size, background_size}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::BACKGROUND_1));
@@ -266,6 +280,7 @@ void Game::InitSceneGame()
     
     state.is_game_over = false;
     state.score = 0;
+    state.new_high_score = false;
     state.death_time = 0;
 
     state.background_scroll = 0.f;
@@ -391,10 +406,10 @@ void Game::UpdateSceneGame(float delta)
     }
 
 
-    if (state.is_game_over && state.game_time > state.death_time + 5.f)
-    {
-        ChangeSceneTo(&GameScene);
-    }
+    // if (state.is_game_over && state.game_time > state.death_time + 5.f)
+    // {
+    //     ChangeSceneTo(&GameScene);
+    // }
 }
 
 void Game::DrawSceneGame()
@@ -415,11 +430,12 @@ void Game::DrawSceneGame()
     }
     
     
-    Transform playerMatrix = Mln::GetMatrix(Mln::Transform2D{state.player_position, {.5f, .5f}, state.player_rotation});
-    Transform wingMatrix = Mln::GetMatrix(Mln::Transform2D{state.player_position, {.5f, .5f}, state.player_rotation + state.wing_rotation}) * Mln::GetMatrix(Mln::Transform2D{Vector2{-50.f , 2.f}, {1.2f, 1.2f}, 0});
+    Mln::Transform2D playerTransform = Mln::Transform2D{state.player_position, {.5f, .5f}, state.player_rotation};
+    Matrix playerMatrix = Mln::GetMatrix(playerTransform);
+    Matrix wingMatrix = playerMatrix * HMM_Rotate_LH(state.wing_rotation, {0.f, 0.f, 1.f}) * Mln::GetMatrix(Mln::Transform2D{Vector2{-50.f , 2.f}, {1.2f, 1.2f}, 0});
     if (state.is_game_over)
     {
-        DrawSprite(Mln::Transform2D{state.wing_position, {.5f, .5f}, state.wing_rotation}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
+        DrawSprite(Mln::Transform2D{state.wing_position, {.5f * 1.2f, .5f * 1.2f}, state.wing_rotation}, {0, 0, 0, 0}, static_cast<SpriteAtlas::Sprite>(SpriteAtlas::WINGS));
     }
     else
     {
@@ -444,11 +460,84 @@ void Game::DrawSceneGame()
     // std::snprintf(buffer, 64, "%02.f", floorf(fmodf(state.game_time, 60.f)));
     // DrawText(state.font, buffer, {10, -GAME_HEIGHT / 2.0f + 48}, 1.f, TEXT_COLOR, TEXT_ALIGN_LEFT);
 
+    Vector2 world_mouse_position = InvTransformVector(state.view_matrix, GetMousePosition());
 
     if (state.is_game_over)
     {
-        DrawText(state.font, "Game Over!", {0, 0}, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
+        Vector2 panel_position = {0, 25};
+        Vector2 panel_size = {420, 450};
+        Rect panel_rect = {panel_position.X - panel_size.X / 2.f, panel_position.Y - panel_size.Y / 2.f, panel_size.X, panel_size.Y};
+        DrawSpriteNinePatch(panel_rect, NO_COLOR, SpriteAtlas::BLUE_FRAME, Mln::Vector4{20, 20, 20, 20});
+
+        Vector2 panel_center_top = {panel_position.X, panel_position.Y - panel_size.Y / 2.f};
+        Vector2 position = panel_center_top;
+        position.Y += 15;
+
+        position.Y += 20;
+        Vector2 coin_size = GetSpriteSize(SpriteAtlas::GOLD);
+        position.Y += coin_size.Y / 2.f;
+        DrawSprite({position + Vector2{-(coin_size.X + 12), 15}, {1.f, 1.f},  HMM_PI32 * 0.1f}, NO_COLOR, SpriteAtlas::COIN_SLOT);
+        if (state.score >= 5)
+        {
+            DrawSprite({position + Vector2{-(coin_size.X + 12), 15}, {1.f, 1.f},  HMM_PI32 * 0.1f}, NO_COLOR, SpriteAtlas::BRONZE);
+        }
+
+        DrawSprite({position, {1.f, 1.f}, 0.f}, NO_COLOR, SpriteAtlas::COIN_SLOT);
+        if (state.score >= 20) 
+        {
+            DrawSprite({position, {1.f, 1.f}, 0.f}, NO_COLOR, SpriteAtlas::GOLD);
+        }
+        
+        DrawSprite({position + Vector2{ (coin_size.X + 12), 15}, {1.f, 1.f}, -HMM_PI32 * 0.1f}, NO_COLOR, SpriteAtlas::COIN_SLOT);
+        if (state.score >= 10)
+        {
+            DrawSprite({position + Vector2{ (coin_size.X + 12), 15}, {1.f, 1.f}, -HMM_PI32 * 0.1f}, NO_COLOR, SpriteAtlas::SILVER);
+        }
+        position.Y += coin_size.Y / 2.f;
+        
+        position.Y += 15;
+        position.Y += 30;
+        position.Y += 30; // TODO: Get font height measurements
+        DrawText(state.font, TextFormat("Score: %d", state.score), position, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
+
+        position.Y += 20;
+        position.Y += 30; // TODO: Get font height measurements
+        if (state.new_high_score)
+        {
+            DrawText(state.font, "New Record!", position, 1.f, YELLOW, TEXT_ALIGN_CENTER);
+        }
+        else
+        {
+            DrawText(state.font, TextFormat("High-Score: %d", state.high_score), position, 1.f, TEXT_COLOR, TEXT_ALIGN_CENTER);
+        }
+
+        Vector2 panel_center_bottom = {panel_position.X, panel_position.Y + panel_size.Y / 2.f};
+        Vector2 bottom_position = panel_center_bottom;
+        bottom_position.Y -= 50;
+        float text_width = MeasureText(state.font, "Play Again!");
+        Rect button_rect = {bottom_position.X - (text_width + 30) / 2.f, bottom_position.Y - 12 - (60) / 2.0f, text_width + 30, 60};
+
+        DrawSpriteNinePatch(button_rect, NO_COLOR, SpriteAtlas::BUTTON_PANEL, {10, 10, 10, 20});
+        
+        Color button_text_color = {TEXT_COLOR.RGB, 0.8f};
+        Color button_hovered_text_color = TEXT_COLOR;
+        bool button_hovered = false;
+        if (world_mouse_position.X > button_rect.x && world_mouse_position.X < button_rect.x + button_rect.width
+            && world_mouse_position.Y > button_rect.y && world_mouse_position.Y < button_rect.y + button_rect.height)
+        {
+            button_hovered = true;
+        }
+
+        DrawText(state.font, "Play Again!", bottom_position, 1.f, button_hovered ? button_hovered_text_color : button_text_color, TEXT_ALIGN_CENTER);
+
+        if (button_hovered && IsMouseButtonJustPressed(MOUSE_BUTTON_LEFT))
+        {
+            ChangeSceneTo(&GameScene);
+
+        }
+
     }
+
 }
 
 void Game::UnloadSceneGame()

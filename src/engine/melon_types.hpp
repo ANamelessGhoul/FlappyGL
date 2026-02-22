@@ -21,7 +21,7 @@ namespace Mln
     using Vector3 = HMM_Vec3;
     using Vector4 = HMM_Vec4;
     using Color = HMM_Vec4;
-    using Transform = HMM_Mat4;
+    using Matrix = HMM_Mat4;
 
     typedef void* Font;
 

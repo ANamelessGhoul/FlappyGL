@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #ifndef CORE_DATA_HPP
 #define CORE_DATA_HPP
 
@@ -20,6 +19,8 @@ namespace Mln
     struct InputState{
         bool keys[KEY__COUNT];
         bool mouse_buttons[MOUSE_BUTTON__COUNT];
+        int mouse_x;
+        int mouse_y;
     };
     
     struct CoreData {

@@ -25,6 +25,8 @@ extern "C" {
     void JsClearInput();
     float JsGetCanvasWidth();
     float JsGetCanvasHeight();
+    int JsGetMouseX();
+    int JsGetMouseY();
 }
 
 
@@ -37,13 +39,13 @@ void PlatformBeginFrame()
     float new_width = JsGetCanvasWidth();
     if (new_width != gCore.viewport.width)
     {
-        gCore.viewport.width = new_width;
+        gCore.viewport.width = (int)new_width;
         gCore.windowResized = true;
     }
     float new_height = JsGetCanvasHeight();
     if (new_height != gCore.viewport.height)
     {
-        gCore.viewport.height = new_height;
+        gCore.viewport.height = (int)new_height;
         gCore.windowResized = true;
     }
 
@@ -70,6 +72,9 @@ void PlatformPollInput()
     {
         gCore.input.current.mouse_buttons[button] = JsIsMouseButtonDown(button);
     }
+
+    gCore.input.current.mouse_x = JsGetMouseX();
+    gCore.input.current.mouse_y = JsGetMouseY();
 
     JsClearInput();
 }

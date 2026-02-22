@@ -1,4 +1,5 @@
 #include "flappy_drawing.hpp"
+#include "HandmadeMath.h"
 #include "graphics_api.hpp"
 #include "melon_types.hpp"
 #include "stb_rect_pack.h"
@@ -159,6 +160,11 @@ Mln::Vector2 GetSpriteSize(SpriteAtlas::Sprite sprite)
     return Mln::Vector2{static_cast<float>(state.sprite_coords[sprite][2]), static_cast<float>(state.sprite_coords[sprite][3])};
 }
 
+void DrawSprite(Mln::Vector2 position, Mln::Color color, SpriteAtlas::Sprite sprite)
+{
+    DrawSprite({position, {1.0f, 1.0f}, 0.f}, color, sprite);
+}
+
 void DrawSprite(Mln::Vector2 position, Mln::Vector2 size, Mln::Color color, SpriteAtlas::Sprite sprite)
 {
     Mln::Vector2 spriteSize = GetSpriteSize(sprite);
@@ -167,15 +173,33 @@ void DrawSprite(Mln::Vector2 position, Mln::Vector2 size, Mln::Color color, Spri
 
 void DrawSprite(Mln::Transform2D transform, Mln::Color color, SpriteAtlas::Sprite sprite)
 {
-    Mln::Transform matrix = HMM_Translate({transform.position.X, transform.position.Y, 0.f}) * HMM_Rotate_LH(transform.rotation, {0.f, 0.f, 1.f}) * HMM_Scale({transform.scale.X, transform.scale.Y, 1.f});
+    Mln::Matrix matrix = HMM_Translate({transform.position.X, transform.position.Y, 0.f}) * HMM_Rotate_LH(transform.rotation, {0.f, 0.f, 1.f}) * HMM_Scale({transform.scale.X, transform.scale.Y, 1.f});
     DrawSprite(matrix, color, sprite);
 }
 
-void DrawSprite(Mln::Transform transform, Mln::Color color, SpriteAtlas::Sprite sprite)
+void DrawSprite(Mln::Matrix transform, Mln::Color color, SpriteAtlas::Sprite sprite)
 {
     int sprite_x = state.sprite_coords[sprite][0];
     int sprite_y = state.sprite_coords[sprite][1];
     int sprite_w = state.sprite_coords[sprite][2];
     int sprite_h = state.sprite_coords[sprite][3];
     DrawRectTextured(transform, state.sprite_atlas_texture, Mln::RectI{sprite_x, sprite_y, sprite_w, sprite_h}, color);
+}
+
+void DrawSpriteNinePatch(Mln::Matrix transform, Mln::Rect rect, Mln::Color color, SpriteAtlas::Sprite sprite, Mln::Vector4 offsets)
+{
+    int sprite_x = state.sprite_coords[sprite][0];
+    int sprite_y = state.sprite_coords[sprite][1];
+    int sprite_w = state.sprite_coords[sprite][2];
+    int sprite_h = state.sprite_coords[sprite][3];
+    DrawRectTexturedNinePatch(transform, rect, state.sprite_atlas_texture, Mln::RectI{sprite_x, sprite_y, sprite_w, sprite_h}, color, offsets);
+}
+
+void DrawSpriteNinePatch(Mln::Rect rect, Mln::Color color, SpriteAtlas::Sprite sprite, Mln::Vector4 offsets)
+{
+    int sprite_x = state.sprite_coords[sprite][0];
+    int sprite_y = state.sprite_coords[sprite][1];
+    int sprite_w = state.sprite_coords[sprite][2];
+    int sprite_h = state.sprite_coords[sprite][3];
+    DrawRectTexturedNinePatch(HMM_M4D(1.0f), rect, state.sprite_atlas_texture, Mln::RectI{sprite_x, sprite_y, sprite_w, sprite_h}, color, offsets);
 }

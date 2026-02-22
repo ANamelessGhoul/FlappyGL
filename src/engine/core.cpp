@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "HandmadeMath.h"
 #include "keys.h"
 #include "core_data.hpp"
 #include "melon_types.hpp"
@@ -221,12 +222,34 @@ namespace Mln{
         return gCore.input.current.mouse_buttons[button] && !gCore.input.previous.mouse_buttons[button];
     }
 
-    Vector2 TransformVector(Transform transform, Vector2 vector)
+    Vector2 GetMousePosition()
+    {
+        return Vector2{(float)gCore.input.current.mouse_x, (float)gCore.input.current.mouse_y};
+    }
+
+    Vector2 GetMouseMotion()
+    {
+        return Vector2{(float)gCore.input.current.mouse_x, (float)gCore.input.current.mouse_y} - Vector2{(float)gCore.input.previous.mouse_x, (float)gCore.input.previous.mouse_y};
+    }
+
+    Color ColorFromBytes(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+    {
+        return {r / 255.f, g / 255.f, b / 255.f, a / 255.f};
+    }
+
+
+    Vector2 TransformVector(Matrix transform, Vector2 vector)
     {
         return (transform * HMM_Vec4{vector.X, vector.Y, 0, 1}).XY;
     }
 
-    Transform GetMatrix(Transform2D transform)
+    Vector2 InvTransformVector(Matrix transform, Vector2 vector)
+    {
+        Matrix inv_transform = HMM_InvGeneralM4(transform);
+        return (inv_transform * HMM_Vec4{vector.X, vector.Y, 0, 1}).XY;
+    }
+
+    Matrix GetMatrix(Transform2D transform)
     {
         return HMM_Translate({transform.position.X, transform.position.Y, 0.f}) * HMM_Rotate_LH(transform.rotation, {0.f, 0.f, 1.f}) * HMM_Scale({transform.scale.X, transform.scale.Y, 1.f});
     }

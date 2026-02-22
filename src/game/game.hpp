@@ -24,6 +24,8 @@ namespace Game{
     constexpr float FLAP_TIME = 0.2f;
 
     constexpr Mln::Color WHITE = {1.f, 1.f, 1.f, 1.f};
+    constexpr Mln::Color YELLOW = {253.f/255.f, 249.f/255.f, 0.f/255.f, 1.f};
+    constexpr Mln::Color NO_COLOR = {0, 0, 0, 0};
 
     constexpr Mln::Color TEXT_COLOR = WHITE;
 
@@ -48,6 +50,8 @@ namespace Game{
         Mln::Font font;
         Mln::Font pixel_font;
 
+        Mln::Matrix view_matrix;
+
         //// GAME SCENE
 
         // Walls
@@ -70,7 +74,10 @@ namespace Game{
 
         // Game State
         bool is_game_over;
-        int score ;
+        int score;
+        int high_score;
+        bool new_high_score;
+
         float death_time;
 
         // Background

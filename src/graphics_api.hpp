@@ -19,8 +19,8 @@ void ShutdownGraphics();
 
 void ResizeViewport(int width, int height);
 
-void SetView(Mln::Transform view);
-void SetProjection(Mln::Transform proj);
+void SetView(Mln::Matrix view);
+void SetProjection(Mln::Matrix proj);
 void ClearBackground(Mln::Color color);
 
 void BeginDrawing();
@@ -30,8 +30,8 @@ Mln::Texture LoadTexture(const char* path, bool filter, bool mipmaps);
 Mln::Texture LoadTextureFromImage(Mln::Image image, bool filter, bool mipmaps);
 void UnloadTexture(Mln::Texture texture);
 
-
-void DrawRectTextured(Mln::Transform transform, Mln::Texture texture, Mln::RectI texture_source, Mln::Color color);
+void DrawRectTextured(Mln::Matrix transform, Mln::Texture texture, Mln::RectI texture_source, Mln::Color color);
+void DrawRectTexturedNinePatch(Mln::Matrix transform, Mln::Rect rect, Mln::Texture texture, Mln::RectI coords, Mln::Color color, Mln::Vector4 margins);
 
 Mln::Font LoadFont(const char* path);
 void UnloadFont(Mln::Font font);

@@ -14,6 +14,9 @@ namespace SpriteAtlas
         BRONZE,
         SILVER,
         GOLD,
+        COIN_SLOT,
+        BLUE_FRAME,
+        BUTTON_PANEL,
         _LENGTH
     };
 	
@@ -28,6 +31,9 @@ namespace SpriteAtlas
         "bronze.png",
         "silver.png",
         "gold.png",
+        "coin_slot.png",
+        "blue_frame_line.png",
+        "green_button_gloss.png",
 	};
 }
 

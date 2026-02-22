@@ -1,3 +1,4 @@
+#include "HandmadeMath.h"
 #include "graphics_api.hpp"
 #include "core.hpp"
 #include "melon_types.hpp"
@@ -35,8 +36,8 @@ struct AtlasFont{
 };
 
 struct {
-    Mln::Transform view;
-    Mln::Transform projection;
+    Mln::Matrix view;
+    Mln::Matrix projection;
 
     Mln::Shader sprite_shader;
     Mln::Shader text_shader;
@@ -89,12 +90,12 @@ void ResizeViewport(int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void SetView(Mln::Transform view)
+void SetView(Mln::Matrix view)
 {
     state.view = view;
 }
 
-void SetProjection(Mln::Transform proj)
+void SetProjection(Mln::Matrix proj)
 {
     state.projection = proj;
 }
@@ -195,23 +196,29 @@ void UnloadTexture(Mln::Texture texture)
     texture.height = 0;
 }
 
+void DrawRect(Mln::Rect rect, Mln::Color color)
+{
 
-void DrawRectTextured(Mln::Transform transform, Mln::Texture texture, Mln::RectI coords, Mln::Color color)
+}
+
+void DrawRectTransformed(Mln::Matrix transform, Mln::Rect rect, Mln::Color color)
+{
+
+}
+
+void _DrawRectTextured(Mln::Matrix transform, Mln::Rect rect, Mln::Texture texture, Mln::RectI coords, Mln::Color color)
 {
     SetTexture(texture);
     SetShader(state.sprite_shader);
 
     Quad quad = {0};
     
-    float sprite_w = coords.width;
-    float sprite_h = coords.height;
-
-    Mln::Vector2 top_right    = Mln::Vector2{ sprite_w / 2.f, -sprite_h / 2.f};
-    Mln::Vector2 bottom_right = Mln::Vector2{ sprite_w / 2.f,  sprite_h / 2.f};
-    Mln::Vector2 bottom_left  = Mln::Vector2{-sprite_w / 2.f,  sprite_h / 2.f};
-    Mln::Vector2 top_left     = Mln::Vector2{-sprite_w / 2.f, -sprite_h / 2.f};
+    Mln::Vector2 top_right    = Mln::Vector2{rect.x + rect.width, rect.y              };
+    Mln::Vector2 bottom_right = Mln::Vector2{rect.x + rect.width, rect.y + rect.height};
+    Mln::Vector2 bottom_left  = Mln::Vector2{rect.x             , rect.y + rect.height};
+    Mln::Vector2 top_left     = Mln::Vector2{rect.x             , rect.y              };
     
-    Mln::Transform mvp = state.projection * state.view * transform;
+    Mln::Matrix mvp = state.projection * state.view * transform;
     
     quad.vertices[0] = (mvp * HMM_Vec4{top_right.X   , top_right.Y   , 0, 1}).XY;
     quad.vertices[1] = (mvp * HMM_Vec4{bottom_right.X, bottom_right.Y, 0, 1}).XY;
@@ -235,6 +242,64 @@ void DrawRectTextured(Mln::Transform transform, Mln::Texture texture, Mln::RectI
 
 
     PushQuad(quad);
+}
+
+void DrawRectTextured(Mln::Rect rect, Mln::Texture texture, Mln::RectI texture_coords, Mln::Color color)
+{
+
+}
+
+void DrawRectTextured(Mln::Matrix transform, Mln::Texture texture, Mln::RectI coords, Mln::Color color)
+{
+    _DrawRectTextured(transform, Mln::Rect{-(float)coords.width / 2.f, -(float)coords.height / 2.f, (float)coords.width, (float)coords.height}, texture, coords, color);
+}
+
+void DrawRectTexturedNinePatch(Mln::Matrix transform, Mln::Rect rect, Mln::Texture texture, Mln::RectI coords, Mln::Color color, Mln::Vector4 margins)
+{
+    Mln::Rect top_left     = (Mln::Rect){rect.x, rect.y, margins.X, margins.Y};
+    Mln::RectI top_left_uv = (Mln::RectI){coords.x, coords.y, (int)margins.X, (int)margins.Y};
+    _DrawRectTextured(transform, top_left, texture, top_left_uv, color);
+
+        
+    Mln::Rect top_right    = (Mln::Rect){rect.x + rect.width - margins.Z, rect.y, margins.Z, margins.Y};
+    Mln::RectI top_right_uv = (Mln::RectI){coords.x + coords.width - (int)margins.Z, coords.y, (int)margins.Z, (int)margins.Y};
+    _DrawRectTextured(transform, top_right, texture, top_right_uv, color);
+
+
+    Mln::Rect bottom_left   = (Mln::Rect){rect.x, rect.y + rect.height - margins.W, margins.X, margins.W};
+    Mln::RectI bottom_left_uv = (Mln::RectI){coords.x, coords.y + coords.height - (int)margins.W, (int)margins.X, (int)margins.W};
+    _DrawRectTextured(transform, bottom_left, texture, bottom_left_uv, color);
+
+
+    Mln::Rect bottom_right   = (Mln::Rect){rect.x + rect.width - margins.Z, rect.y + rect.height - margins.W, margins.Z, margins.W};
+    Mln::RectI bottom_right_uv = (Mln::RectI){coords.x + coords.width - (int)margins.Z, coords.y + coords.height - (int)margins.W, (int)margins.Z, (int)margins.W};
+    _DrawRectTextured(transform, bottom_right, texture, bottom_right_uv, color);
+
+
+    Mln::Rect left   = (Mln::Rect){rect.x, rect.y + margins.Y, margins.X, rect.height - (margins.Y + margins.W)};
+    Mln::RectI left_uv = (Mln::RectI){coords.x, coords.y + (int)margins.Y, (int)margins.X, coords.height - (int)margins.Y - (int)margins.W};
+    _DrawRectTextured(transform, left, texture, left_uv, color);
+
+
+    Mln::Rect right  = (Mln::Rect){rect.x + rect.width - margins.Z, rect.y + margins.Y, margins.Z, rect.height - (margins.Y + margins.W)};
+    Mln::RectI right_uv = (Mln::RectI){coords.x + coords.width - (int)margins.Z, coords.y + (int)margins.Y, (int)margins.Z, coords.height - (int)margins.Y - (int)margins.W};
+    _DrawRectTextured(transform, right, texture, right_uv, color);
+
+
+    Mln::Rect top    = (Mln::Rect){rect.x + margins.X, rect.y, rect.width - (margins.X + margins.Z), margins.Y};
+    Mln::RectI top_uv = (Mln::RectI){coords.x + (int)margins.X, coords.y, coords.width - (int)margins.X - (int)margins.Z, (int)margins.Y};
+    _DrawRectTextured(transform, top, texture, top_uv, color);
+
+
+    Mln::Rect bottom = (Mln::Rect){rect.x + margins.X, rect.y + rect.height - margins.W, rect.width - (margins.X + margins.Z), margins.W};
+    Mln::RectI bottom_uv = (Mln::RectI){coords.x + (int)margins.X, coords.y + coords.height - (int)margins.W, coords.width - (int)margins.X - (int)margins.Z, (int)margins.W};
+    _DrawRectTextured(transform, bottom, texture, bottom_uv, color);
+
+
+    Mln::Rect center = (Mln::Rect){rect.x + margins.X, rect.y + margins.Y, rect.width - (margins.X + margins.Z), rect.height - (margins.Y + margins.W)};
+    Mln::RectI center_uv = (Mln::RectI){coords.x + (int)margins.X, coords.y + (int)margins.Y, coords.width - ((int)margins.X + (int)margins.Z), coords.height - ((int)margins.Y + (int)margins.W)};
+    _DrawRectTextured(transform, center, texture, center_uv, color);
+
 }
 
 Mln::Font LoadFont(const char* path)
@@ -350,7 +415,7 @@ void DrawText(Mln::Font font, const char *str, Mln::Vector2 position, float scal
     size_t str_length = strlen(str);
 
     float text_width = MeasureText(font, str);
-    Mln::Transform alignment_offset = HMM_M4D(1.0f);
+    Mln::Matrix alignment_offset = HMM_M4D(1.0f);
     switch (alignment)
     {
     case TEXT_ALIGN_LEFT:
@@ -364,8 +429,8 @@ void DrawText(Mln::Font font, const char *str, Mln::Vector2 position, float scal
         break;
     }
 
-    Mln::Transform model = HMM_Translate({position.X, position.Y, 0.f}) * HMM_Scale({scale, scale, 1.f}) * alignment_offset;
-    Mln::Transform mvp = state.projection * state.view * model;
+    Mln::Matrix model = HMM_Translate({position.X, position.Y, 0.f}) * HMM_Scale({scale, scale, 1.f}) * alignment_offset;
+    Mln::Matrix mvp = state.projection * state.view * model;
 
 
     float x = 0;

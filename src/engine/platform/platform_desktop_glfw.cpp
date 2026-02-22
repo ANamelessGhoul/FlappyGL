@@ -91,6 +91,13 @@ void PlatformPollInput()
     {
         gCore.input.current.mouse_buttons[button] = glfwGetMouseButton(gPlatform.window, button) == GLFW_PRESS;
     }
+
+    double mouse_x = 0;
+    double mouse_y = 0;
+    glfwGetCursorPos(gPlatform.window, &mouse_x, &mouse_y);
+    
+    gCore.input.current.mouse_x = (int)mouse_x;
+    gCore.input.current.mouse_y = (int)mouse_y;
 }
 
 bool PlatformWindowShouldClose()

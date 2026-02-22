@@ -46,8 +46,14 @@ namespace Mln
     bool IsMouseButtonUp(MouseButton button);
     bool IsMouseButtonJustPressed(MouseButton button);
 
-    Vector2 TransformVector(Transform transform, Vector2 vector);
-    Transform GetMatrix(Transform2D transform2D);
+    Vector2 GetMousePosition();
+    Vector2 GetMouseMotion();
+
+    Color ColorFromBytes(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+
+    Vector2 TransformVector(Matrix transform, Vector2 vector);
+    Vector2 InvTransformVector(Matrix transform, Vector2 vector);
+    Matrix GetMatrix(Transform2D transform2D);
 
     const char* TextFormat(const char* format, ...) ATTRIBUTE_FORMAT(1, 2);
     void PrintLog(int logLevel, const char* format, ...) ATTRIBUTE_FORMAT(2, 3);

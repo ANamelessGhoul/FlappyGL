@@ -4,13 +4,12 @@ An implementation of flappy bird as part of the [20 Games Challenge](https://20_
 
 Assets by Kenney.nl
 
-## Missing Game Features
-- UI
+## Upcoming Game Features
 - Ramping Difficulty
-- Game Over screen with score and high-score
 - Circle/Box collision
+- Persistent High-Score
 
-## Missing Engine Features
-- Audio
-- Mouse Input
+## Upcoming Engine Features
 - Controller Input
+- File saving
+- Simple shape drawing
